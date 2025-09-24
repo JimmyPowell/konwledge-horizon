@@ -1,0 +1,19 @@
+# Environments
+.env
+backend/env/
+env/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE metadata
+.vscode/
+.idea/
+
+# Build artifacts
+/build/
+/dist/
