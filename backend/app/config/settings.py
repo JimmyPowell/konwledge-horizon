@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -34,6 +35,13 @@ class Settings(BaseSettings):
     MAIL_FROM: str
     MAIL_TLS: bool = True
     MAIL_SSL: bool = True
+
+    # LLM / Chat settings
+    SILICONFLOW_API_KEY: Optional[str] = None
+    LLM_DEFAULT_MODEL: str = "Pro/deepseek-ai/DeepSeek-V3.1"
+    LLM_MAX_TURNS: int = 12  # max turns to include in context window
+    LLM_MAX_TOKENS: int = 1024  # default completion tokens cap
+    LLM_API_BASE: str = "https://api.siliconflow.cn/v1"
 
     @property
     def mysql_database_url(self) -> str:

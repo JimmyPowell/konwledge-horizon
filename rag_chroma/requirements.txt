@@ -1,0 +1,29 @@
+# RAG with remote Chroma (HTTP) via LangChain + SiliconFlow embeddings
+# NOTE: Requires Python >= 3.9 (not compatible with 3.2)
+
+# Vector DB client (connects to your Chroma server at :8002)
+# Updated to latest stable version for better compatibility
+chromadb>=0.5.0,<0.6.0
+
+# LangChain core + new Chroma integration package
+# Use the new langchain-chroma package instead of langchain-community
+langchain>=0.2.15,<0.3.0
+langchain-chroma>=0.1.0,<0.2.0
+
+# HTTP client for SiliconFlow embedding API
+requests>=2.31.0,<3
+
+# Env var loader (for SILICONFLOW_API_KEY)
+python-dotenv>=1.0.1,<2
+
+# PDF text extraction for .pdf documents
+pypdf>=4.2.0,<5
+
+# Robust retries for API calls
+tenacity>=8.2.3,<9
+
+# Pretty CLI output (optional but useful)
+rich>=13.7.1,<14
+
+# Text splitting for chunking
+langchain-text-splitters>=0.2.0,<0.3.0

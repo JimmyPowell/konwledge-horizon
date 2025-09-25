@@ -1,8 +1,8 @@
 <template>
-  <a-config-provider :locale="zhCN">
+  <a-config-provider :locale="zhCN" component-size="large">
     <div class="app">
-      <NavBar v-if="!isAuth" />
-      <main class="container" :class="{ full: isAuth }">
+      <NavBar v-if="showGlobalNav" />
+      <main class="container" :class="{ full: isAuth || isApp }">
         <router-view />
       </main>
     </div>
@@ -18,6 +18,8 @@ import zhCN from 'ant-design-vue/es/locale/zh_CN'
 
 const route = useRoute()
 const isAuth = computed(() => route.path.startsWith('/auth'))
+const isApp = computed(() => route.path.startsWith('/app'))
+const showGlobalNav = computed(() => !(isAuth.value || isApp.value))
 </script>
 
 <style>
@@ -27,7 +29,7 @@ const isAuth = computed(() => route.path.startsWith('/auth'))
   --accent: #3b82f6;
 }
 html, body, #app { height: 100%; margin: 0; }
-body { color: var(--fg); background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; }
+body { color: var(--fg); background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; font-size: 17px; line-height: 1.55; }
 .container { max-width: 960px; margin: 24px auto; padding: 0 16px; }
 .container.full { max-width: none; margin: 0; padding: 0; }
 a { color: var(--accent); text-decoration: none; }

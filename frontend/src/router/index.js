@@ -3,6 +3,9 @@ import { getAccessToken } from '../utils/tokens'
 import Auth from '../pages/Auth.vue'
 import MainLayout from '../layouts/MainLayout.vue'
 import Home from '../pages/Home.vue'
+import History from '../pages/History.vue'
+import Knowledge from '../pages/Knowledge.vue'
+import KnowledgeDetail from '../pages/KnowledgeDetail.vue'
 
 const routes = [
   { path: '/', redirect: () => (getAccessToken() ? '/app' : '/auth') },
@@ -14,9 +17,9 @@ const routes = [
     meta: { requiresAuth: true },
     children: [
       { path: '', name: 'home', component: Home },
-      { path: 'history', name: 'history1', component: () => import('../pages/Placeholder.vue') },
-      { path: 'history2', name: 'history2', component: () => import('../pages/Placeholder.vue') },
-      { path: 'knowledge', name: 'knowledge', component: () => import('../pages/Placeholder.vue') },
+      { path: 'history', name: 'history', component: History },
+      { path: 'knowledge', name: 'knowledge', component: Knowledge },
+      { path: 'knowledge/:id', name: 'knowledge-detail', component: KnowledgeDetail },
       { path: 'workflow', name: 'workflow', component: () => import('../pages/Placeholder.vue') }
     ]
   }

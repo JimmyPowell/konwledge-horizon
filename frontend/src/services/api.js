@@ -122,4 +122,71 @@ export const refreshToken = (refresh_token) =>
 export const logout = (refresh_token) =>
   bare.post('/api/v1/auth/logout', { refresh_token })
 
+// Chat APIs
+export const createConversation = (payload = {}) =>
+  api.post('/api/v1/chat/conversations', payload)
+
+export const listConversations = (params = {}) =>
+  api.get('/api/v1/chat/conversations', { params })
+
+export const listMessages = (conversationId, params = {}) =>
+  api.get(`/api/v1/chat/conversations/${conversationId}/messages`, { params })
+
+export const sendMessage = (conversationId, payload) =>
+  api.post(`/api/v1/chat/conversations/${conversationId}/messages`, payload)
+
+// Streaming via fetch (SSE)
+export const sendMessageStream = async (conversationId, payload, onChunk) => {
+  const url = `${import.meta.env.VITE_API_BASE_URL}/api/v1/chat/conversations/${conversationId}/messages/stream`
+  const token = getAccessToken()
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify(payload)
+  })
+  if (!res.ok || !res.body) {
+    const text = await res.text().catch(() => '')
+    throw new Error(text || `HTTP ${res.status}`)
+  }
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder('utf-8')
+  let buffer = ''
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+    const chunk = decoder.decode(value, { stream: true })
+    buffer += chunk
+    // SSE frames are separated by double newlines
+    let idx
+    while ((idx = buffer.indexOf('\n\n')) !== -1) {
+      const frame = buffer.slice(0, idx)
+      buffer = buffer.slice(idx + 2)
+      const line = frame.trim()
+      if (!line) continue
+      if (!line.startsWith('data:')) continue
+      const data = line.slice(5).trim()
+      if (data === '[DONE]') {
+        onChunk({ done: true })
+        return
+      }
+      // Parse JSON; only append text content, never raw JSON
+      try {
+        const obj = JSON.parse(data)
+        const choice = (obj.choices && obj.choices[0]) || {}
+        const m = choice.message || {}
+        const delta = choice.delta || {}
+        const text = m.content || delta.content || ''
+        if (text) onChunk({ text })
+      } catch {
+        // ignore non-JSON or malformed frames
+      }
+    }
+  }
+  onChunk({ done: true })
+}
+
 export default api
