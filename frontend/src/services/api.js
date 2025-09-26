@@ -139,54 +139,103 @@ export const sendMessage = (conversationId, payload) =>
 export const sendMessageStream = async (conversationId, payload, onChunk) => {
   const url = `${import.meta.env.VITE_API_BASE_URL}/api/v1/chat/conversations/${conversationId}/messages/stream`
   const token = getAccessToken()
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    body: JSON.stringify(payload)
-  })
-  if (!res.ok || !res.body) {
-    const text = await res.text().catch(() => '')
-    throw new Error(text || `HTTP ${res.status}`)
-  }
 
-  const reader = res.body.getReader()
-  const decoder = new TextDecoder('utf-8')
-  let buffer = ''
-  while (true) {
-    const { value, done } = await reader.read()
-    if (done) break
-    const chunk = decoder.decode(value, { stream: true })
-    buffer += chunk
-    // SSE frames are separated by double newlines
-    let idx
-    while ((idx = buffer.indexOf('\n\n')) !== -1) {
-      const frame = buffer.slice(0, idx)
-      buffer = buffer.slice(idx + 2)
-      const line = frame.trim()
-      if (!line) continue
-      if (!line.startsWith('data:')) continue
-      const data = line.slice(5).trim()
-      if (data === '[DONE]') {
-        onChunk({ done: true })
-        return
+  let reader = null
+  let streamFinished = false
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(payload)
+    })
+
+    if (!res.ok || !res.body) {
+      const text = await res.text().catch(() => '')
+      throw new Error(text || `HTTP ${res.status}`)
+    }
+
+    reader = res.body.getReader()
+    const decoder = new TextDecoder('utf-8')
+    let buffer = ''
+
+    while (true) {
+      const { value, done } = await reader.read()
+
+      if (done) {
+        // 流自然结束
+        if (!streamFinished) {
+          console.log('[sendMessageStream] Stream ended naturally')
+          streamFinished = true
+          onChunk({ done: true })
+        }
+        break
       }
-      // Parse JSON; only append text content, never raw JSON
-      try {
-        const obj = JSON.parse(data)
-        const choice = (obj.choices && obj.choices[0]) || {}
-        const m = choice.message || {}
-        const delta = choice.delta || {}
-        const text = m.content || delta.content || ''
-        if (text) onChunk({ text })
-      } catch {
-        // ignore non-JSON or malformed frames
+
+      const chunk = decoder.decode(value, { stream: true })
+      buffer += chunk
+
+      // SSE frames are separated by double newlines
+      let idx
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const frame = buffer.slice(0, idx)
+        buffer = buffer.slice(idx + 2)
+        const line = frame.trim()
+
+        if (!line) continue
+        if (!line.startsWith('data:')) continue
+
+        const data = line.slice(5).trim()
+
+        // 检查结束标记
+        if (data === '[DONE]') {
+          console.log('[sendMessageStream] Received [DONE] marker')
+          if (!streamFinished) {
+            streamFinished = true
+            onChunk({ done: true })
+          }
+          return
+        }
+
+        // 解析JSON数据
+        try {
+          const obj = JSON.parse(data)
+          const choice = (obj.choices && obj.choices[0]) || {}
+          const m = choice.message || {}
+          const delta = choice.delta || {}
+          const text = m.content || delta.content || ''
+
+          if (text) {
+            onChunk({ text })
+          }
+        } catch (parseError) {
+          // 忽略非JSON或格式错误的帧
+          console.debug('[sendMessageStream] Parse error:', parseError.message)
+        }
       }
     }
+  } catch (error) {
+    console.error('[sendMessageStream] Stream error:', error)
+    throw error
+  } finally {
+    // 确保资源清理
+    if (reader) {
+      try {
+        await reader.cancel()
+      } catch (e) {
+        console.debug('[sendMessageStream] Reader cancel error:', e)
+      }
+    }
+
+    // 确保结束回调被调用
+    if (!streamFinished) {
+      console.log('[sendMessageStream] Ensuring done callback is called')
+      onChunk({ done: true })
+    }
   }
-  onChunk({ done: true })
 }
 
 export default api

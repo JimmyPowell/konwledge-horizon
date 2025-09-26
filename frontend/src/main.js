@@ -5,6 +5,7 @@ import { createPinia } from 'pinia'
 import Antd from 'ant-design-vue'
 import 'ant-design-vue/dist/reset.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import 'highlight.js/styles/github.css' // 代码高亮样式
 
 const app = createApp(App)
 

@@ -218,3 +218,7 @@ def stream_chat_generator(
             latency_ms,
             len(content_out) if content_out else 0,
         )
+
+        # 发送流式结束标记
+        logger.info("[stream_chat] sending_done_marker conv=%s", conversation_id)
+        yield yield_sse("[DONE]")
