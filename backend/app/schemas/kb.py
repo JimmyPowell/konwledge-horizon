@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import List, Optional
+from datetime import datetime
 from pydantic import BaseModel, Field
 
 
@@ -39,7 +40,7 @@ class KBOut(BaseModel):
     use_reranker: bool
     doc_count: int
     total_size_bytes: int
-    created_at: Optional[str] = None
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -48,4 +49,3 @@ class KBOut(BaseModel):
 class KBListOut(BaseModel):
     items: List[KBOut]
     total: int
-

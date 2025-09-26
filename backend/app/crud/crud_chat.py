@@ -170,6 +170,10 @@ def soft_delete_conversation(db: Session, conversation_id: int, user_id: int) ->
     return True
 
 
+# NOTE: The title helpers below have consolidated implementations at the bottom
+# of this module. Keep only one definition to avoid shadowing.
+
+
 def update_conversation_title(db: Session, conversation_id: int, title: Optional[str]) -> Optional[Conversation]:
     conv = db.query(Conversation).filter(Conversation.id == conversation_id).first()
     if not conv:

@@ -22,14 +22,14 @@
           <h1 class="kb-name">{{ knowledgeBase.name }}</h1>
           <p class="kb-desc">{{ knowledgeBase.description }}</p>
           <div class="kb-stats">
-            <span class="stat-item">{{ files.length }} 个文件</span>
+            <span class="stat-item">{{ knowledgeBase.docCount }} 个文件</span>
             <span class="stat-item">{{ knowledgeBase.totalSize }}</span>
             <span class="stat-item">创建于 {{ knowledgeBase.createdAt }}</span>
           </div>
         </div>
       </div>
       <div class="kb-actions">
-        <a-button @click="showUploadModal = true" type="primary" size="large">
+        <a-button type="primary" size="large" @click="triggerFileSelect">
           <template #icon>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
@@ -37,6 +37,7 @@
           </template>
           上传文件
         </a-button>
+        <input ref="fileInput" type="file" @change="onFileSelected" style="display:none" accept=".pdf,.doc,.docx,.txt,.md" />
       </div>
     </div>
 
@@ -116,27 +117,15 @@
       </div>
     </div>
 
-    <!-- 上传文件模态框 -->
-    <a-modal
-      v-model:open="showUploadModal"
-      title="上传文件"
-      width="600px"
-      :footer="null"
-    >
-      <FileUpload
-        :knowledge-base-id="knowledgeBaseId"
-        @success="onUploadSuccess"
-        @cancel="showUploadModal = false"
-      />
-    </a-modal>
+    
   </section>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
-import FileUpload from '../components/FileUpload.vue'
+import { message, Modal } from 'ant-design-vue'
+import { getKB, listKBDocuments, deleteKBDocument, uploadKBDocument } from '../services/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -144,47 +133,73 @@ const router = useRouter()
 // 响应式数据
 const knowledgeBaseId = ref(route.params.id)
 const searchText = ref('')
-const showUploadModal = ref(false)
+// 移除上传按钮相关
 
 // 知识库信息
 const knowledgeBase = ref({
-  id: '1',
-  name: '冶金工艺手册',
-  description: '详细介绍各种冶金工艺流程和技术要求',
-  totalSize: '15.2MB',
-  createdAt: '2025.09.12'
+  id: '',
+  name: '',
+  description: '',
+  docCount: 0,
+  totalSize: '0 B',
+  createdAt: ''
 })
 
-// 文件列表
-const files = ref([
-  {
-    id: '1',
-    name: '冶金工艺手册.pdf',
-    size: 15728640,
-    type: 'pdf',
-    status: 'processed',
-    uploadedAt: '2025.09.12 14:30',
-    processedAt: '2025.09.12 14:35'
-  },
-  {
-    id: '2',
-    name: '钢铁生产流程.docx',
-    size: 2048000,
-    type: 'doc',
-    status: 'processing',
-    uploadedAt: '2025.09.12 15:20',
-    processedAt: null
-  },
-  {
-    id: '3',
-    name: '质量控制标准.txt',
-    size: 512000,
-    type: 'txt',
-    status: 'failed',
-    uploadedAt: '2025.09.12 16:10',
-    processedAt: null
+const formatFileSize = (bytes) => {
+  const n = Number(bytes || 0)
+  if (n <= 0) return '0 B'
+  const units = ['B','KB','MB','GB','TB']
+  const i = Math.floor(Math.log(n) / Math.log(1024))
+  return `${(n / Math.pow(1024, i)).toFixed(2)} ${units[i]}`
+}
+
+const formatDate = (s) => {
+  if (!s) return ''
+  try { return new Date(s).toLocaleDateString('zh-CN') } catch { return '' }
+}
+
+const loadKB = async () => {
+  try {
+    const id = Number(knowledgeBaseId.value)
+    const { data } = await getKB(id)
+    const kb = data?.data || {}
+    knowledgeBase.value = {
+      id: kb.id,
+      name: kb.name,
+      description: kb.description || '',
+      docCount: kb.doc_count || 0,
+      totalSize: formatFileSize(kb.total_size_bytes || 0),
+      createdAt: formatDate(kb.created_at)
+    }
+  } catch (e) {
+    message.error(e?.response?.data?.message || '加载知识库失败')
   }
-])
+}
+
+onMounted(async () => { await loadKB(); await loadDocuments() })
+
+// 文件列表（后端加载）
+const files = ref([])
+
+const loadDocuments = async () => {
+  try {
+    const id = Number(knowledgeBaseId.value)
+    const { data } = await listKBDocuments(id, { limit: 50, offset: 0 })
+    const payload = data?.data || {}
+    const items = Array.isArray(payload.items) ? payload.items : []
+    files.value = items.map(it => ({
+      id: String(it.id),
+      name: it.filename,
+      size: it.size_bytes || 0,
+      type: (it.file_ext || '').toLowerCase(),
+      status: it.status || 'uploaded',
+      uploadedAt: it.created_at || null,
+      processedAt: it.processed_at || null,
+    }))
+  } catch (e) {
+    message.error(e?.response?.data?.message || '加载文件列表失败')
+  }
+}
 
 // 表格列定义
 const columns = [
@@ -250,13 +265,7 @@ const getFileType = (filename) => {
   return 'file'
 }
 
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
+// 复用 formatFileSize（已上移）
 
 const getStatusColor = (status) => {
   switch (status) {
@@ -288,19 +297,62 @@ const downloadFile = (file) => {
   message.info(`下载文件: ${file.name}`)
 }
 
-const deleteFile = (file) => {
-  message.info(`删除文件: ${file.name}`)
+const deleteFile = async (file) => {
+  await new Promise((resolve) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除文件「${file.name}」吗？该操作不可恢复。`,
+      okText: '删除',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await deleteKBDocument(Number(knowledgeBaseId.value), Number(file.id))
+          message.success('已删除')
+          await Promise.all([loadDocuments(), loadKB()])
+        } catch (e) {
+          message.error(e?.response?.data?.message || '删除失败')
+        } finally {
+          resolve()
+        }
+      },
+      onCancel: () => resolve()
+    })
+  })
 }
 
-const onUploadSuccess = () => {
-  showUploadModal.value = false
-  message.success('文件上传成功')
-  // 刷新文件列表
+// 上传相关逻辑暂移除
+const fileInput = ref(null)
+const triggerFileSelect = () => {
+  fileInput.value?.click()
 }
 
-onMounted(() => {
-  // 加载知识库详情和文件列表
-})
+const onFileSelected = async (e) => {
+  const f = e.target.files && e.target.files[0]
+  if (!f) return
+  // 前端校验大小和类型
+  const allowed = ['application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain',
+    'text/markdown']
+  const okType = !f.type || allowed.includes(f.type) || ['pdf','doc','docx','txt','md'].includes((f.name.split('.').pop()||'').toLowerCase())
+  if (!okType) { message.error('不支持的文件类型'); e.target.value = ''; return }
+  const isLt50M = f.size / 1024 / 1024 < 50
+  if (!isLt50M) { message.error('文件大小不能超过 50MB'); e.target.value = ''; return }
+  try {
+    message.loading('上传中...', 1)
+    await uploadKBDocument(Number(knowledgeBaseId.value), f)
+    message.success('上传成功')
+    await Promise.all([loadDocuments(), loadKB()])
+  } catch (err) {
+    message.error(err?.response?.data?.message || '上传失败')
+  } finally {
+    e.target.value = ''
+  }
+}
+
+// 第二个 onMounted 清理，主初始化在上方已处理
 </script>
 
 <style scoped>

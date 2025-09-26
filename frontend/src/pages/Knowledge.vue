@@ -13,25 +13,19 @@
           class="search"
           placeholder="搜索知识库..."
           allow-clear
+          @search="onSearch"
         />
       </div>
       <div class="toolbar-right">
-        <a-button @click="onCreateFolder">
+        <a-button @click="openCreateKB">
           <template #icon>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/>
             </svg>
           </template>
-          新建文件夹
+          新建知识库
         </a-button>
-        <a-button type="primary" @click="onUpload">
-          <template #icon>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-            </svg>
-          </template>
-          上传文件
-        </a-button>
+        
       </div>
     </div>
 
@@ -51,6 +45,43 @@
       </div>
     </div>
 
+    <!-- 新建/编辑弹窗 -->
+    <a-modal v-model:open="createVisible" title="新建知识库" :confirm-loading="createLoading" @ok="handleCreate">
+      <a-form layout="vertical">
+        <a-form-item label="名称" required>
+          <a-input v-model:value="createForm.name" maxlength="200" placeholder="请输入名称" />
+        </a-form-item>
+        <a-form-item label="描述">
+          <a-textarea v-model:value="createForm.description" :auto-size="{ minRows: 2, maxRows: 4 }" placeholder="可选" />
+        </a-form-item>
+        <a-form-item label="可见性">
+          <a-select v-model:value="createForm.visibility" style="width: 200px">
+            <a-select-option value="private">私有</a-select-option>
+            <a-select-option value="org">我的组织</a-select-option>
+            <a-select-option value="public">公开</a-select-option>
+          </a-select>
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
+    <a-modal v-model:open="editVisible" title="编辑知识库" :confirm-loading="editLoading" @ok="handleEdit">
+      <a-form layout="vertical">
+        <a-form-item label="名称" required>
+          <a-input v-model:value="editForm.name" maxlength="200" placeholder="请输入名称" />
+        </a-form-item>
+        <a-form-item label="描述">
+          <a-textarea v-model:value="editForm.description" :auto-size="{ minRows: 2, maxRows: 4 }" placeholder="可选" />
+        </a-form-item>
+        <a-form-item label="可见性">
+          <a-select v-model:value="editForm.visibility" style="width: 200px">
+            <a-select-option value="private">私有</a-select-option>
+            <a-select-option value="org">我的组织</a-select-option>
+            <a-select-option value="public">公开</a-select-option>
+          </a-select>
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
     <!-- 知识库网格 -->
     <div class="grid" v-if="filtered.length > 0">
       <div
@@ -61,17 +92,8 @@
       >
         <div class="card-header">
           <div class="file-icon">
-            <svg v-if="item.type === 'folder'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-              <path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z" fill="#FFA726"/>
-            </svg>
-            <svg v-else-if="item.type === 'pdf'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-              <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" fill="#F44336"/>
-            </svg>
-            <svg v-else-if="item.type === 'doc'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-              <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" fill="#2196F3"/>
-            </svg>
-            <svg v-else width="32" height="32" viewBox="0 0 24 24" fill="none">
-              <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" fill="#4CAF50"/>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z" fill="#74b9ff"/>
             </svg>
           </div>
           <div class="card-actions">
@@ -118,18 +140,18 @@
 
         <div class="card-content">
           <div class="name">{{ item.name }}</div>
-          <div class="desc">{{ item.desc }}</div>
-          <div class="file-info" v-if="item.type !== 'folder'">
-            <span class="file-size">{{ item.size }}</span>
-            <span class="file-pages" v-if="item.pages">{{ item.pages }} 页</span>
+          <div class="desc">{{ item.description || '（无描述）' }}</div>
+          <div class="file-info">
+            <span class="file-size">{{ formatBytes(item.total_size_bytes || 0) }}</span>
+            <span class="file-pages">{{ item.doc_count || 0 }} 个文档</span>
           </div>
         </div>
 
         <div class="card-footer">
-          <div class="date">{{ item.date }}</div>
+          <div class="date">{{ formatDate(item.created_at) }}</div>
           <div class="owner">
-            <div class="owner-avatar">{{ item.owner.charAt(0) }}</div>
-            <span>{{ item.owner }}</span>
+            <div class="owner-avatar">KB</div>
+            <span>{{ item.visibility }}</span>
           </div>
         </div>
       </div>
@@ -144,196 +166,181 @@
       </div>
       <div class="empty-title">暂无知识库文件</div>
       <div class="empty-desc">上传您的第一个文件开始构建知识库</div>
-      <a-button type="primary" @click="onUpload">上传文件</a-button>
+      <a-button type="primary" @click="openCreateKB">新建知识库</a-button>
     </div>
-
-    <!-- 上传文件模态框 -->
-    <a-modal
-      v-model:open="uploadModalVisible"
-      title="上传文件"
-      @ok="handleUpload"
-      @cancel="uploadModalVisible = false"
-    >
-      <a-upload-dragger
-        v-model:fileList="fileList"
-        name="file"
-        :multiple="true"
-        :before-upload="beforeUpload"
-        @change="handleChange"
-      >
-        <p class="ant-upload-drag-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="#1890ff">
-            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-          </svg>
-        </p>
-        <p class="ant-upload-text">点击或拖拽文件到此区域上传</p>
-        <p class="ant-upload-hint">
-          支持单个或批量上传。支持 PDF、Word、Excel、PPT、TXT 等格式
-        </p>
-      </a-upload-dragger>
-    </a-modal>
   </section>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
+import { listKBs, createKB, updateKB as apiUpdateKB, deleteKB as apiDeleteKB } from '../services/api'
 
 const router = useRouter()
 
-const filters = [ '全部', '个人', '我的组织' ]
+// 过滤器（与后端 visibility 对应：private/org/public）
+const filters = [
+  { label: '全部', value: '全部' },
+  { label: '个人', value: 'private' },
+  { label: '我的组织', value: 'org' },
+  { label: '公开', value: 'public' }
+]
 const filter = ref('全部')
 const q = ref('')
-const uploadModalVisible = ref(false)
-const fileList = ref([])
+// 移除上传相关
 
-// 模拟知识库数据
-const items = ref([
-  {
-    id: 1,
-    name: '冶金工艺手册',
-    desc: '详细介绍各种冶金工艺流程和技术要点',
-    date: '2025.09.12',
-    owner: '张工程师',
-    scope: '个人',
-    type: 'pdf',
-    size: '15.2MB',
-    pages: 245
-  },
-  {
-    id: 2,
-    name: '钢铁生产数据',
-    desc: '2024年钢铁生产相关数据统计',
-    date: '2025.09.11',
-    owner: '李分析师',
-    scope: '我的组织',
-    type: 'folder',
-    size: '128MB',
-    files: 23
-  },
-  {
-    id: 3,
-    name: '环保技术报告',
-    desc: '绿色冶金技术发展现状与趋势分析',
-    date: '2025.09.10',
-    owner: '王研究员',
-    scope: '个人',
-    type: 'doc',
-    size: '8.7MB',
-    pages: 89
-  },
-  {
-    id: 4,
-    name: '设备维护手册',
-    desc: '高炉设备日常维护和故障排除指南',
-    date: '2025.09.09',
-    owner: '赵技师',
-    scope: '我的组织',
-    type: 'pdf',
-    size: '22.1MB',
-    pages: 156
-  },
-  {
-    id: 5,
-    name: '质量控制标准',
-    desc: '钢材质量检测标准和控制流程',
-    date: '2025.09.08',
-    owner: '孙质检员',
-    scope: '个人',
-    type: 'doc',
-    size: '5.3MB',
-    pages: 67
-  },
-  {
-    id: 6,
-    name: '安全操作规程',
-    desc: '冶金车间安全操作规程和应急预案',
-    date: '2025.09.07',
-    owner: '刘安全员',
-    scope: '我的组织',
-    type: 'pdf',
-    size: '12.8MB',
-    pages: 98
+// 列表数据
+const items = ref([])
+const listLoading = ref(false)
+
+// 新建/编辑
+const createVisible = ref(false)
+const createLoading = ref(false)
+const createForm = ref({ name: '', description: '', visibility: 'private' })
+
+const editVisible = ref(false)
+const editLoading = ref(false)
+const currentEditId = ref(null)
+const editForm = ref({ name: '', description: '', visibility: 'private' })
+
+const formatBytes = (bytes) => {
+  const n = Number(bytes || 0)
+  if (n <= 0) return '0 B'
+  const units = ['B','KB','MB','GB','TB']
+  const i = Math.floor(Math.log(n) / Math.log(1024))
+  return `${(n / Math.pow(1024, i)).toFixed(2)} ${units[i]}`
+}
+
+const formatDate = (s) => {
+  if (!s) return ''
+  try {
+    const d = new Date(s)
+    return d.toLocaleDateString('zh-CN')
+  } catch { return '' }
+}
+
+const fetchKBs = async () => {
+  listLoading.value = true
+  try {
+    const { data } = await listKBs({ q: q.value || undefined, limit: 50, offset: 0 })
+    const payload = data?.data || {}
+    items.value = Array.isArray(payload.items) ? payload.items : []
+  } catch (e) {
+    message.error(e?.response?.data?.message || '加载知识库失败')
+  } finally {
+    listLoading.value = false
   }
-])
+}
 
-// 计算统计信息
-const totalFiles = computed(() => items.value.length)
-const totalSize = computed(() => '192.1MB')
-const recentUploads = computed(() => 12)
+const onSearch = () => fetchKBs()
+
+onMounted(fetchKBs)
+
+// 统计信息
+const totalFiles = computed(() => items.value.reduce((sum, it) => sum + (it.doc_count || 0), 0))
+const totalSize = computed(() => formatBytes(items.value.reduce((sum, it) => sum + (it.total_size_bytes || 0), 0)))
+const recentUploads = computed(() => {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = now.getMonth()
+  return items.value.filter(it => {
+    try {
+      const d = new Date(it.created_at)
+      return d.getFullYear() === y && d.getMonth() === m
+    } catch { return false }
+  }).length
+})
 
 const filtered = computed(() => {
   const kw = q.value.trim().toLowerCase()
   return items.value.filter(it => {
-    const okScope = filter.value === '全部' || it.scope === filter.value
-    const okKw = !kw || it.name.toLowerCase().includes(kw) || it.desc.toLowerCase().includes(kw)
-    return okScope && okKw
+    const okVis = filter.value === '全部' || (it.visibility || '').toLowerCase() === filter.value
+    const okKw = !kw || it.name?.toLowerCase().includes(kw) || (it.description || '').toLowerCase().includes(kw)
+    return okVis && okKw
   })
 })
 
-// 方法
-const onUpload = () => {
-  uploadModalVisible.value = true
+const openCreateKB = () => {
+  createForm.value = { name: '', description: '', visibility: 'private' }
+  createVisible.value = true
 }
 
-const onCreateFolder = () => {
-  message.info('创建文件夹功能开发中...')
-}
-
-const openKnowledge = (item) => {
-  // 跳转到知识库详情页面
-  router.push(`/app/knowledge/${item.id}`)
+const handleCreate = async () => {
+  if (!createForm.value.name?.trim()) {
+    message.warning('请输入名称')
+    return
+  }
+  createLoading.value = true
+  try {
+    await createKB(createForm.value)
+    message.success('已创建')
+    createVisible.value = false
+    await fetchKBs()
+  } catch (e) {
+    message.error(e?.response?.data?.message || '创建失败')
+  } finally {
+    createLoading.value = false
+  }
 }
 
 const editKnowledge = (item) => {
-  message.info(`编辑: ${item.name}`)
+  currentEditId.value = item.id
+  editForm.value = {
+    name: item.name,
+    description: item.description || '',
+    visibility: item.visibility || 'private',
+  }
+  editVisible.value = true
+}
+
+const handleEdit = async () => {
+  if (!currentEditId.value) return
+  editLoading.value = true
+  try {
+    await apiUpdateKB(currentEditId.value, editForm.value)
+    message.success('已更新')
+    editVisible.value = false
+    await fetchKBs()
+  } catch (e) {
+    message.error(e?.response?.data?.message || '更新失败')
+  } finally {
+    editLoading.value = false
+  }
+}
+
+const openKnowledge = (item) => {
+  router.push(`/app/knowledge/${item.id}`)
 }
 
 const shareKnowledge = (item) => {
-  message.success(`分享: ${item.name}`)
+  message.info('分享功能稍后提供')
 }
 
-const deleteKnowledge = (item) => {
-  message.warning(`删除: ${item.name}`)
-  // 实现删除逻辑
+const deleteKnowledge = async (item) => {
+  try {
+    await new Promise((resolve, reject) => {
+      Modal.confirm({
+        title: '确认删除',
+        content: `确定要删除知识库「${item.name}」吗？该操作不可恢复。`,
+        okText: '删除',
+        okButtonProps: { danger: true },
+        cancelText: '取消',
+        onOk: async () => {
+          try {
+            await apiDeleteKB(item.id)
+            message.success('已删除')
+            await fetchKBs()
+            resolve()
+          } catch (e) { message.error('删除失败'); reject(e) }
+        },
+        onCancel: () => resolve()
+      })
+    })
+  } catch {}
 }
 
-const handleUpload = () => {
-  if (fileList.value.length === 0) {
-    message.warning('请选择要上传的文件')
-    return
-  }
-
-  message.loading('正在上传文件...', 2)
-
-  // 模拟上传过程
-  setTimeout(() => {
-    message.success(`成功上传 ${fileList.value.length} 个文件`)
-    fileList.value = []
-    uploadModalVisible.value = false
-  }, 2000)
-}
-
-const beforeUpload = (file) => {
-  const isValidType = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'].includes(file.type)
-  if (!isValidType) {
-    message.error('只支持 PDF、Word、TXT 格式的文件!')
-    return false
-  }
-
-  const isLt50M = file.size / 1024 / 1024 < 50
-  if (!isLt50M) {
-    message.error('文件大小不能超过 50MB!')
-    return false
-  }
-
-  return false // 阻止自动上传
-}
-
-const handleChange = (info) => {
-  fileList.value = info.fileList
-}
+// 移除上传相关方法
 </script>
 
 <style scoped>
@@ -634,4 +641,3 @@ const handleChange = (info) => {
   font-size: 14px !important;
 }
 </style>
-

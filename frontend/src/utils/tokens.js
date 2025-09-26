@@ -22,3 +22,6 @@ export const clearTokens = () => {
   localStorage.removeItem(REFRESH_KEY)
 }
 
+export const clearIdentifier = () => {
+  localStorage.removeItem(IDENTIFIER_KEY)
+}

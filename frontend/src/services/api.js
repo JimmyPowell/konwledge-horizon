@@ -138,12 +138,13 @@ export const sendMessage = (conversationId, payload) =>
 // Streaming via fetch (SSE)
 export const sendMessageStream = async (conversationId, payload, onChunk) => {
   const url = `${import.meta.env.VITE_API_BASE_URL}/api/v1/chat/conversations/${conversationId}/messages/stream`
-  const token = getAccessToken()
 
   let reader = null
   let streamFinished = false
+  let attemptedRefresh = false
 
-  try {
+  const doFetch = async () => {
+    const token = getAccessToken()
     const res = await fetch(url, {
       method: 'POST',
       headers: {
@@ -153,12 +154,44 @@ export const sendMessageStream = async (conversationId, payload, onChunk) => {
       body: JSON.stringify(payload)
     })
 
+    // Handle 401 with manual refresh logic (fetch has no interceptor)
+    if (res.status === 401 && !attemptedRefresh) {
+      attemptedRefresh = true
+      try {
+        const rt = getRefreshToken()
+        if (!rt) throw new Error('No refresh token')
+        const { data } = await bare.post(
+          '/api/v1/auth/refresh',
+          { refresh_token: rt },
+          { __skipAuth: true }
+        )
+        const payload = data?.data || data
+        const newAccess = payload?.access_token
+        const maybeNewRefresh = payload?.refresh_token || null
+        if (!newAccess) throw new Error('No access token in refresh response')
+        setTokens(newAccess, maybeNewRefresh ?? undefined)
+        // retry once with new token
+        return doFetch()
+      } catch (e) {
+        clearTokens()
+        try { window?.location && (window.location.href = '/auth') } catch {}
+        throw e
+      }
+    }
+
     if (!res.ok || !res.body) {
       const text = await res.text().catch(() => '')
-      throw new Error(text || `HTTP ${res.status}`)
+      const err = new Error(text || `HTTP ${res.status}`)
+      err.status = res.status
+      throw err
     }
 
     reader = res.body.getReader()
+    return res
+  }
+
+  try {
+    await doFetch()
     const decoder = new TextDecoder('utf-8')
     let buffer = ''
 
@@ -243,3 +276,40 @@ export default api
 // History helpers
 export const deleteConversation = (conversationId) =>
   api.delete(`/api/v1/chat/conversations/${conversationId}`)
+
+// Knowledge Base APIs
+export const listKBs = (params = {}) =>
+  api.get('/api/v1/kb/bases', { params })
+
+export const createKB = (payload) =>
+  api.post('/api/v1/kb/bases', payload)
+
+export const getKB = (kbId) =>
+  api.get(`/api/v1/kb/bases/${kbId}`)
+
+export const updateKB = (kbId, payload) =>
+  api.patch(`/api/v1/kb/bases/${kbId}`, payload)
+
+export const deleteKB = (kbId) =>
+  api.delete(`/api/v1/kb/bases/${kbId}`)
+
+// Knowledge Documents APIs
+export const listKBDocuments = (kbId, params = {}) =>
+  api.get(`/api/v1/kb/bases/${kbId}/documents`, { params })
+
+export const getKBDocument = (kbId, docId) =>
+  api.get(`/api/v1/kb/bases/${kbId}/documents/${docId}`)
+
+export const createKBDocument = (kbId, payload) =>
+  api.post(`/api/v1/kb/bases/${kbId}/documents`, payload)
+
+export const deleteKBDocument = (kbId, docId) =>
+  api.delete(`/api/v1/kb/bases/${kbId}/documents/${docId}`)
+
+export const uploadKBDocument = (kbId, file) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  return api.post(`/api/v1/kb/bases/${kbId}/documents/upload`, fd, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}

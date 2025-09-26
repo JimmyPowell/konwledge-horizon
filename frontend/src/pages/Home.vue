@@ -45,15 +45,42 @@
     <!-- 底部控制区域 -->
     <div class="bottom">
       <div class="pills">
-        <a-popover trigger="hover" placement="top">
-          <template #content>
-            <a-segmented v-model:value="mode" :options="['普通模式','流式输出']" />
-          </template>
-          <a-button size="small" shape="round" :type="btnType('model')" @mouseenter="active='model'">对话模式</a-button>
-        </a-popover>
-        <a-button size="small" shape="round" :type="webEnabled ? 'primary' : 'default'" @click="toggleWeb">联网搜索</a-button>
-        <a-button size="small" shape="round" :type="btnType('config')" @click="active='config'">知识库配置</a-button>
-        <a-button size="small" shape="round" :type="btnType('mcp')" @click="active='mcp'">MCP</a-button>
+        <a-button
+          size="small"
+          shape="round"
+          type="default"
+          :class="{ 'config-button': true, 'active': isStreamMode }"
+          @click="toggleStreamMode"
+        >
+          {{ isStreamMode ? '流式输出' : '普通模式' }}
+        </a-button>
+        <a-button
+          size="small"
+          shape="round"
+          type="default"
+          :class="{ 'config-button': true, 'active': webEnabled }"
+          @click="toggleWeb"
+        >
+          联网搜索
+        </a-button>
+        <a-button
+          size="small"
+          shape="round"
+          type="default"
+          :class="{ 'config-button': true, 'active': active === 'config' }"
+          @click="active='config'"
+        >
+          知识库配置
+        </a-button>
+        <a-button
+          size="small"
+          shape="round"
+          type="default"
+          :class="{ 'config-button': true, 'active': active === 'mcp' }"
+          @click="active='mcp'"
+        >
+          MCP
+        </a-button>
       </div>
 
       <!-- 输入区域 -->
@@ -94,9 +121,9 @@ import { useRoute } from 'vue-router'
 import { createConversation, listMessages, sendMessage, sendMessageStream } from '../services/api'
 import MarkdownRenderer from '../components/MarkdownRenderer.vue'
 
-const active = ref('model')
+const active = ref('config')
 const webEnabled = ref(false)
-const mode = ref('普通模式')
+const isStreamMode = ref(true) // 默认为流式模式
 const text = ref('')
 const messages = ref([])
 const messagesContainer = ref(null)
@@ -105,6 +132,7 @@ const isGenerating = ref(false) // 添加生成状态
 
 const btnType = (key) => (active.value === key ? 'primary' : 'default')
 const toggleWeb = () => { webEnabled.value = !webEnabled.value }
+const toggleStreamMode = () => { isStreamMode.value = !isStreamMode.value }
 
 const formatTime = (date) => date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
 
@@ -119,30 +147,45 @@ const scrollToBottom = () => {
 const route = useRoute()
 
 const ensureConversation = async () => {
+  console.log('🔄 [ensureConversation] 开始初始化会话')
   const forceNew = route.query?.new === '1' || route.query?.new === 'true'
   const saved = !forceNew ? localStorage.getItem('kh_conversation_id') : null
+  console.log('💾 [ensureConversation] 检查本地存储:', { forceNew, saved })
+
   if (saved) {
     conversationId.value = Number(saved)
+    console.log('📋 [ensureConversation] 使用已存在的会话ID:', conversationId.value)
     await loadHistory()
     return
   }
+
+  console.log('🆕 [ensureConversation] 创建新会话...')
   const { data } = await createConversation({ title: '新的对话' })
   const conv = data?.data
   conversationId.value = conv?.id
+  console.log('✅ [ensureConversation] 新会话创建成功:', conversationId.value)
   if (conversationId.value) localStorage.setItem('kh_conversation_id', String(conversationId.value))
 }
 
 const loadHistory = async () => {
-  if (!conversationId.value) return
+  if (!conversationId.value) {
+    console.log('⚠️ [loadHistory] 没有会话ID，跳过加载历史')
+    return
+  }
+
+  console.log('📚 [loadHistory] 加载会话历史:', conversationId.value)
   try {
     const { data } = await listMessages(conversationId.value, { limit: 50 })
     const arr = data?.data || []
+    console.log('📥 [loadHistory] 收到历史消息:', arr.length, '条')
     messages.value = arr.map(it => ({
       type: it.role === 'assistant' ? 'ai' : 'user',
       content: it.content || '',
       time: formatTime(new Date(it.created_at || Date.now()))
     }))
-  } catch (e) {}
+  } catch (e) {
+    console.error('❌ [loadHistory] 加载历史失败:', e)
+  }
 }
 
 onMounted(async () => {
@@ -174,18 +217,32 @@ watch(
 )
 
 const onSend = async () => {
-  if (!text.value.trim() || !conversationId.value || isGenerating.value) return
+  console.log('🚀 [onSend] 开始发送消息', {
+    hasText: !!text.value.trim(),
+    conversationId: conversationId.value,
+    isGenerating: isGenerating.value,
+    isStreamMode: isStreamMode.value
+  })
+
+  if (!text.value.trim() || !conversationId.value || isGenerating.value) {
+    console.warn('❌ [onSend] 发送条件不满足，退出')
+    return
+  }
 
   const content = text.value
   text.value = ''
   isGenerating.value = true // 设置生成状态
 
+  console.log('📝 [onSend] 准备发送内容:', content)
+
   // 添加用户消息
   messages.value.push({ type: 'user', content, time: formatTime(new Date()) })
+  console.log('👤 [onSend] 用户消息已添加，当前消息数:', messages.value.length)
   scrollToBottom()
 
-  if (mode.value === '普通模式') {
+  if (!isStreamMode.value) {
     // 非流式模式
+    console.log('📡 [onSend] 使用非流式模式')
     let aiMsgIndex = -1
     try {
       // 先插入占位的“生成中”气泡
@@ -199,7 +256,9 @@ const onSend = async () => {
       aiMsgIndex = messages.value.length - 1
       scrollToBottom()
 
+      console.log('📤 [onSend] 发送非流式请求...')
       const { data } = await sendMessage(conversationId.value, { content })
+      console.log('📥 [onSend] 收到非流式响应:', data)
       const payload = data?.data || {}
       const asst = payload.assistant_message || {}
 
@@ -231,6 +290,7 @@ const onSend = async () => {
   }
 
   // 流式模式
+  console.log('🌊 [onSend] 使用流式模式')
   let aiMsgIndex = -1
   try {
     const aiMsg = {
@@ -243,7 +303,9 @@ const onSend = async () => {
     aiMsgIndex = messages.value.length - 1
     scrollToBottom()
 
+    console.log('📤 [onSend] 发送流式请求...')
     await sendMessageStream(conversationId.value, { content }, (evt) => {
+      console.log('📥 [onSend] 收到流式数据:', evt)
       if (evt?.text && aiMsgIndex >= 0) {
         // 使用响应式更新：创建新对象
         const currentMsg = messages.value[aiMsgIndex]
@@ -256,7 +318,7 @@ const onSend = async () => {
       }
       if (evt?.done) {
         // 流式输出结束
-        console.log('流式输出完成')
+        console.log('✅ [onSend] 流式输出完成')
         isGenerating.value = false
 
         // 如果没有内容，显示提示
@@ -301,6 +363,7 @@ const onNewLine = () => { text.value += '\n' }
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: hidden; /* 防止整体横向滚动 */
 }
 
 /* 对话容器 */
@@ -317,11 +380,13 @@ const onNewLine = () => { text.value += '\n' }
 .messages {
   flex: 1;
   overflow-y: auto;
-  padding: 20px 8px 140px 16px; /* 右侧padding减少，为滚动条留出空间 */
+  overflow-x: hidden; /* 防止横向滚动 */
+  padding: 16px 12px 140px 16px; /* 减少上下padding */
   scroll-behavior: smooth;
   /* 滚动条样式 */
   scrollbar-width: thin;
   scrollbar-color: #c1c1c1 transparent;
+  word-wrap: break-word; /* 强制换行 */
 }
 
 /* Webkit浏览器滚动条样式 */
@@ -351,12 +416,14 @@ const onNewLine = () => { text.value += '\n' }
 /* 消息样式 */
 .message {
   display: flex;
-  margin-bottom: 20px;
+  margin-bottom: 16px; /* 减少消息间距 */
   animation: fadeIn 0.3s ease-in;
+  width: 100%; /* 确保消息占满容器宽度 */
 }
 
 .message.user {
   flex-direction: row-reverse;
+  justify-content: flex-start; /* 用户消息在右侧 */
 }
 
 .message-avatar {
@@ -383,23 +450,31 @@ const onNewLine = () => { text.value += '\n' }
 }
 
 .message-content {
-  max-width: 75%;
-  min-width: fit-content; /* 改为自适应内容宽度 */
+  max-width: 65%; /* 减少最大宽度，让布局更紧凑 */
+  min-width: 120px; /* 设置最小宽度，避免过窄 */
+  overflow: hidden; /* 防止内容溢出 */
+  flex-shrink: 1; /* 允许内容收缩 */
 }
 
 .message.user .message-content {
-  text-align: right;
+  text-align: left; /* 用户消息文字左对齐，避免气泡内空白 */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* 整个内容区域靠右 */
 }
 
 .message-text {
   background: #ffffff;
-  padding: 16px 20px;
-  border-radius: 16px;
-  line-height: 1.6;
+  padding: 12px 16px; /* 减少内边距 */
+  border-radius: 12px; /* 减少圆角 */
+  line-height: 1.5; /* 减少行高 */
   word-wrap: break-word;
-  font-size: 15px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  word-break: break-word; /* 强制长单词换行 */
+  overflow-wrap: break-word; /* 兼容性 */
+  font-size: 14px; /* 减少字体大小 */
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1); /* 减少阴影 */
   border: 1px solid #e8e8e8;
+  max-width: 100%; /* 确保不超出容器 */
 }
 
 .message.user .message-text {
@@ -407,12 +482,16 @@ const onNewLine = () => { text.value += '\n' }
   color: #555;
   border: 1px solid #e8e8e8;
   font-size: 14px;
-  padding: 12px 16px;
+  padding: 10px 14px; /* 减少用户消息内边距 */
   white-space: pre-wrap; /* 用户消息保持换行 */
+  word-break: break-word; /* 强制长单词换行 */
+  text-align: left; /* 气泡内文字左对齐，避免空白 */
 }
 
 .message.ai .message-text {
   white-space: normal; /* AI消息使用Markdown渲染 */
+  overflow-wrap: break-word; /* 确保长文本换行 */
+  hyphens: auto; /* 自动断词 */
 }
 
 .message-time {
@@ -488,6 +567,41 @@ const onNewLine = () => { text.value += '\n' }
   justify-content: center;
   gap: 8px;
   padding: 0 0 16px;
+}
+
+/* 配置按钮样式 */
+.config-button {
+  transition: all 0.2s ease !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.config-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+}
+
+.config-button.active {
+  background: #f0f8ff !important;
+  border-color: #91caff !important;
+  color: #1677ff !important;
+  transform: scale(1.02);
+}
+
+.config-button.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 0.6s ease-out;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
 }
 
 /* 输入区域 */
@@ -594,16 +708,37 @@ const onNewLine = () => { text.value += '\n' }
 @media (max-width: 768px) {
   .home {
     max-width: 100%;
-    padding: 0 16px;
+    padding: 0 8px; /* 减少移动端边距 */
   }
 
   .message-content {
-    max-width: 85%;
+    max-width: 80%; /* 移动端进一步减少宽度 */
+  }
+
+  .message-text {
+    font-size: 13px; /* 移动端减少字体 */
+    padding: 10px 12px; /* 移动端减少内边距 */
+  }
+
+  .messages {
+    padding: 12px 8px 140px 12px; /* 移动端减少边距 */
   }
 
   .pills {
     flex-wrap: wrap;
     gap: 6px;
+  }
+}
+
+/* 超小屏幕优化 */
+@media (max-width: 480px) {
+  .message-content {
+    max-width: 90%;
+  }
+
+  .message-text {
+    font-size: 12px;
+    padding: 8px 10px;
   }
 }
 </style>

@@ -8,7 +8,19 @@
       </div>
       <div class="user">
         <span>欢迎您，{{ identifier || '用户' }}</span>
-        <span class="avatar"></span>
+        <div class="avatar-trigger">
+          <a-dropdown placement="bottomRight" trigger="['click']">
+            <div class="avatar-wrapper">
+              <img v-if="avatarUrl" :src="avatarUrl" alt="avatar" class="avatar" />
+              <div v-else class="avatar placeholder">{{ initials }}</div>
+            </div>
+            <template #overlay>
+              <a-menu @click="onUserMenu">
+                <a-menu-item key="logout">退出登录</a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
+        </div>
       </div>
     </a-layout-header>
 
@@ -32,14 +44,26 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { getIdentifier } from '../utils/tokens'
+import { getIdentifier, getRefreshToken } from '../utils/tokens'
+import { logout as apiLogout } from '../services/api'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
 const route = useRoute()
 const selectedKeys = ref(['home'])
 const identifier = ref('')
+const avatarUrl = ref('') // 未来可由 /me 接口返回
+const auth = useAuthStore()
+
+const initials = computed(() => {
+  const id = identifier.value || ''
+  if (!id) return '用户'.slice(0, 1)
+  // 如果是邮箱，取 @ 前首字母；否则取第一个字符
+  const base = id.includes('@') ? id.split('@')[0] : id
+  return base.slice(0, 1).toUpperCase()
+})
 
 onMounted(() => {
   const p = route.name
@@ -56,6 +80,20 @@ const onMenu = ({ key }) => {
     router.push(`/app/${key}`)
   }
 }
+
+const onUserMenu = async ({ key }) => {
+  if (key === 'logout') {
+    try {
+      const rt = getRefreshToken()
+      if (rt) {
+        await apiLogout(rt).catch(() => {})
+      }
+    } finally {
+      auth.logout()
+      router.push('/auth')
+    }
+  }
+}
 </script>
 
 <style scoped>
@@ -64,7 +102,10 @@ const onMenu = ({ key }) => {
 .brand { font-weight: 700; font-size: 20px; }
 .subtitle { color: #555; font-size: 16px; }
 .user { display:flex; align-items:center; gap: 12px; }
-.avatar { width: 40px; height: 40px; border-radius: 999px; border: 1px solid #e5e7eb; display:inline-block; }
+.avatar-trigger { width: 40px; height: 40px; display:flex; align-items:center; justify-content:center; }
+.avatar-wrapper { width: 40px; height: 40px; display:inline-flex; }
+.avatar { width: 40px; height: 40px; border-radius: 999px; border: 1px solid #e5e7eb; display:inline-flex; align-items:center; justify-content:center; background:#f3f4f6; font-weight: 600; color:#6b7280; cursor: pointer; }
+.avatar.placeholder { font-size: 14px; }
 .content { padding: 16px; }
 
 /* 菜单样式：浅色、条目分隔线、居中 */

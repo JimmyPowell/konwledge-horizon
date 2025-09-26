@@ -168,7 +168,7 @@ def stream_chat_generator(
             # We normalize to our own SSE frame to guarantee '\n\n' separation.
             if line.startswith("data:"):
                 payload_str = line[len("data:"):].strip()
-                logger.debug(
+                logger.info(
                     "[stream_chat] recv_chunk conv=%s idx=%s bytes=%s preview=%r",
                     conversation_id,
                     chunk_idx,
@@ -193,10 +193,10 @@ def stream_chat_generator(
                         accumulated.append(piece)
                 except Exception:
                     # parsing errors are ignored but logged at debug
-                    logger.debug("[stream_chat] chunk_parse_failed conv=%s", conversation_id)
+                    logger.info("[stream_chat] chunk_parse_failed conv=%s", conversation_id)
             else:
                 # Ignore non-data lines but keep a debug trace
-                logger.debug("[stream_chat] ignore_line conv=%s line=%r", conversation_id, line[:80])
+                logger.info("[stream_chat] ignore_line conv=%s line=%r", conversation_id, line[:80])
 
         logger.info("[stream_chat] llm_stream_end conv=%s chunks=%s", conversation_id, chunk_idx)
     finally:

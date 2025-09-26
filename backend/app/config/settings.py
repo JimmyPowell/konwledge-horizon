@@ -38,10 +38,14 @@ class Settings(BaseSettings):
 
     # LLM / Chat settings
     SILICONFLOW_API_KEY: Optional[str] = None
-    LLM_DEFAULT_MODEL: str = "Pro/deepseek-ai/DeepSeek-V3.1"
+    LLM_DEFAULT_MODEL: str = "moonshotai/Kimi-K2-Instruct-0905"
     LLM_MAX_TURNS: int = 12  # max turns to include in context window
     LLM_MAX_TOKENS: int = 1024  # default completion tokens cap
     LLM_API_BASE: str = "https://api.siliconflow.cn/v1"
+
+    # File storage
+    STORAGE_ROOT: str = "storage"
+    MAX_UPLOAD_BYTES: int = 50 * 1024 * 1024
 
     # Title generation
     LLM_TITLE_MODEL: Optional[str] = None  # fallback to LLM_DEFAULT_MODEL if None

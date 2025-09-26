@@ -41,6 +41,11 @@ const renderedContent = computed(() => {
 .markdown-content {
   line-height: 1.6;
   color: #333;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-x: hidden; /* 防止横向滚动 */
 }
 
 /* 标题样式 */
@@ -120,9 +125,12 @@ const renderedContent = computed(() => {
   padding: 1em;
   margin: 1em 0;
   overflow-x: auto;
+  max-width: 100%; /* 限制最大宽度 */
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 0.9em;
+  font-size: 0.85em; /* 稍微减少代码字体大小 */
   line-height: 1.4;
+  white-space: pre-wrap; /* 允许代码换行 */
+  word-break: break-all; /* 强制长代码行换行 */
 }
 
 .markdown-content :deep(pre code) {
@@ -158,8 +166,12 @@ const renderedContent = computed(() => {
 .markdown-content :deep(table) {
   border-collapse: collapse;
   width: 100%;
+  max-width: 100%; /* 限制表格最大宽度 */
   margin: 1em 0;
   border: 1px solid #ddd;
+  overflow-x: auto; /* 表格横向滚动 */
+  display: block; /* 使表格可滚动 */
+  white-space: nowrap; /* 防止表格内容换行 */
 }
 
 .markdown-content :deep(th),

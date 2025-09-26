@@ -108,13 +108,20 @@ class LLMClient:
         if max_tokens is not None:
             payload["max_tokens"] = max_tokens
 
+        logger.info("[llm.chat_completion_stream] starting stream model=%s", payload.get("model"))
         with httpx.Client(timeout=None) as client:
             with client.stream("POST", url, json=payload, headers=self._headers()) as r:
                 r.raise_for_status()
+                logger.info("[llm.chat_completion_stream] stream connected status=%s", r.status_code)
+                line_count = 0
                 for line in r.iter_lines():
                     if not line:
                         continue
+                    line_count += 1
+                    if line_count <= 5 or line_count % 10 == 0:  # 记录前5行和每10行
+                        logger.info("[llm.chat_completion_stream] line_%s: %r", line_count, line[:100])
                     yield line
+                logger.info("[llm.chat_completion_stream] stream ended total_lines=%s", line_count)
 
 
 llm_client = LLMClient()
