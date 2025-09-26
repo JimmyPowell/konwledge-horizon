@@ -239,3 +239,7 @@ export const sendMessageStream = async (conversationId, payload, onChunk) => {
 }
 
 export default api
+
+// History helpers
+export const deleteConversation = (conversationId) =>
+  api.delete(`/api/v1/chat/conversations/${conversationId}`)

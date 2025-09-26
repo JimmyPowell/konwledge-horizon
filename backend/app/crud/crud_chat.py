@@ -28,16 +28,30 @@ def create_conversation(db: Session, user_id: int, title: Optional[str], kb_ids:
     return conv
 
 
-def list_user_conversations(db: Session, user_id: int, limit: int = 20, offset: int = 0) -> List[Conversation]:
-    # MySQL 不支持 "NULLS LAST" 语法，这里用布尔排序把 NULL 放到最后，再按时间与 id 倒序
-    q = (
+def list_user_conversations(
+    db: Session,
+    user_id: int,
+    q: Optional[str] = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> List[Conversation]:
+    """List a user's conversations with optional title search."""
+    query = (
         db.query(Conversation)
         .filter(Conversation.user_id == user_id, Conversation.deleted_at.is_(None))
-        .order_by(Conversation.last_message_at.is_(None), desc(Conversation.last_message_at), desc(Conversation.id))
-        .limit(limit)
-        .offset(offset)
     )
-    return q.all()
+    if q:
+        like = f"%{q}%"
+        query = query.filter(Conversation.title.like(like))
+
+    # MySQL 不支持 "NULLS LAST" 语法，这里用布尔排序把 NULL 放到最后，再按时间与 id 倒序
+    query = query.order_by(
+        Conversation.last_message_at.is_(None),
+        desc(Conversation.last_message_at),
+        desc(Conversation.id),
+    ).limit(limit).offset(offset)
+
+    return query.all()
 
 
 def get_conversation(db: Session, conversation_id: int, user_id: int) -> Optional[Conversation]:
@@ -130,3 +144,52 @@ def get_message_counts_for_conversations(db: Session, conversation_ids: List[int
     for cid, cnt in rows:
         out[int(cid)] = int(cnt)
     return out
+
+
+def soft_delete_conversation(db: Session, conversation_id: int, user_id: int) -> bool:
+    """Soft delete a conversation if owned by user.
+
+    Returns True if deleted, False if not found or not owned.
+    """
+    from sqlalchemy.sql import func as sqlfunc
+
+    conv = (
+        db.query(Conversation)
+        .filter(
+            Conversation.id == conversation_id,
+            Conversation.user_id == user_id,
+            Conversation.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if not conv:
+        return False
+    conv.deleted_at = sqlfunc.now()
+    db.add(conv)
+    db.commit()
+    return True
+
+
+def update_conversation_title(db: Session, conversation_id: int, title: Optional[str]) -> Optional[Conversation]:
+    conv = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+    if not conv:
+        return None
+    conv.title = title
+    db.commit()
+    db.refresh(conv)
+    logger.info("[crud_chat] title_updated conv=%s title=%r", conversation_id, (title or ""))
+    return conv
+
+
+def get_first_messages_for_title(db: Session, conversation_id: int, max_fetch: int = 6) -> List[Message]:
+    """Fetch earliest few messages within a conversation for title summarization.
+    We fetch a small slice and let the caller pick user/assistant as needed.
+    """
+    q = (
+        db.query(Message)
+        .filter(Message.conversation_id == conversation_id)
+        .order_by(Message.id.asc())
+        .limit(max_fetch)
+    )
+    rows = q.all()
+    return rows

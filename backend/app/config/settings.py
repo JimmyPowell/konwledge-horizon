@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     LLM_MAX_TOKENS: int = 1024  # default completion tokens cap
     LLM_API_BASE: str = "https://api.siliconflow.cn/v1"
 
+    # Title generation
+    LLM_TITLE_MODEL: Optional[str] = None  # fallback to LLM_DEFAULT_MODEL if None
+    TITLE_MAX_TOKENS: int = 32
+    TITLE_MAX_LENGTH_CHARS: int = 40
+
     @property
     def mysql_database_url(self) -> str:
         return f"mysql+pymysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DB}"

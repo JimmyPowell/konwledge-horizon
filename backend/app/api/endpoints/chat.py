@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 import logging
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -13,7 +13,7 @@ from app import models, schemas
 from app.schemas.chat import ConversationCreate, ConversationOut, MessageCreate, MessageOut, SendMessageResponse
 from app.utils.response import Success, BadRequest, NotFound
 from app.crud import crud_chat
-from app.services import chat_service
+from app.services import chat_service, title_service
 
 
 router = APIRouter()
@@ -46,17 +46,29 @@ def create_conversation(
 
 @router.get("/conversations")
 def list_conversations(
+    q: Optional[str] = None,
     limit: int = 20,
     offset: int = 0,
     db: Session = Depends(get_mysql_db),
     current_user: models.User = Depends(deps.get_current_user),
 ):
-    rows = crud_chat.list_user_conversations(db, current_user.id, limit=limit, offset=offset)
+    rows = crud_chat.list_user_conversations(db, current_user.id, q=q, limit=limit, offset=offset)
     conv_ids = [c.id for c in rows]
     msg_counts = crud_chat.get_message_counts_for_conversations(db, conv_ids)
     out = []
     for c in rows:
         kb_ids = crud_chat.list_conversation_kb_ids(db, c.id)
+        first_ts = c.first_message_at
+        last_ts = c.last_message_at
+        duration_seconds = None
+        duration_minutes = None
+        if first_ts and last_ts:
+            try:
+                delta = (last_ts - first_ts)
+                duration_seconds = int(delta.total_seconds())
+                duration_minutes = int(max(1, round(duration_seconds / 60)))
+            except Exception:
+                pass
         out.append({
             "id": c.id,
             "uid": c.uid,
@@ -64,7 +76,10 @@ def list_conversations(
             "kb_ids": kb_ids,
             "model": c.model,
             "message_count": msg_counts.get(c.id, 0),
-            "last_message_at": c.last_message_at.isoformat() if c.last_message_at else None,
+            "first_message_at": first_ts.isoformat() if first_ts else None,
+            "last_message_at": last_ts.isoformat() if last_ts else None,
+            "duration_seconds": duration_seconds,
+            "duration_minutes": duration_minutes,
         })
     return Success(data=out)
 
@@ -92,6 +107,7 @@ def list_messages(
 def send_message(
     conversation_id: int,
     body: MessageCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_mysql_db),
     current_user: models.User = Depends(deps.get_current_user),
 ):
@@ -148,6 +164,17 @@ def send_message(
         )
     except Exception:
         pass
+
+    # Auto-generate title in background (only if missing)
+    try:
+        background_tasks.add_task(
+            title_service.generate_and_save_if_needed_background,
+            conversation_id=conversation_id,
+            user_id=current_user.id,
+            force=False,
+        )
+    except Exception:
+        logger.debug("[api.chat] schedule_title_task_failed conv=%s", conversation_id)
     return Success(data=data)
 
 
@@ -155,6 +182,7 @@ def send_message(
 def send_message_stream(
     conversation_id: int,
     body: MessageCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_mysql_db),
     current_user: models.User = Depends(deps.get_current_user),
 ):
@@ -177,4 +205,46 @@ def send_message_stream(
     resp.headers["Cache-Control"] = "no-cache"
     resp.headers["Connection"] = "keep-alive"
     resp.headers["X-Accel-Buffering"] = "no"
+
+    # Schedule title generation to run after stream finishes
+    try:
+        background_tasks.add_task(
+            title_service.generate_and_save_if_needed_background,
+            conversation_id=conversation_id,
+            user_id=current_user.id,
+            force=False,
+        )
+    except Exception:
+        logger.debug("[api.chat] schedule_title_task_failed conv=%s", conversation_id)
     return resp
+
+
+@router.post("/conversations/{conversation_id}/title/auto")
+def auto_generate_title(
+    conversation_id: int,
+    force: bool = False,
+    db: Session = Depends(get_mysql_db),
+    current_user: models.User = Depends(deps.get_current_user),
+):
+    conv = crud_chat.get_conversation(db, conversation_id, current_user.id)
+    if not conv:
+        return NotFound(message="Conversation not found")
+    title = title_service.generate_and_save_if_needed(db, conversation_id, current_user.id, force=force)
+    data = {
+        "id": conv.id,
+        "uid": conv.uid,
+        "title": title or conv.title,
+    }
+    return Success(data=data, message="Title generated" if title else "No change")
+
+
+@router.delete("/conversations/{conversation_id}")
+def delete_conversation(
+    conversation_id: int,
+    db: Session = Depends(get_mysql_db),
+    current_user: models.User = Depends(deps.get_current_user),
+):
+    ok = crud_chat.soft_delete_conversation(db, conversation_id, current_user.id)
+    if not ok:
+        return NotFound(message="Conversation not found")
+    return Success(message="Deleted")

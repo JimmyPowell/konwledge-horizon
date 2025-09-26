@@ -87,102 +87,100 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { listConversations, deleteConversation } from '../services/api'
 
 const router = useRouter()
 
-// 响应式数据
+// 查询与状态
 const searchText = ref('')
 const filterType = ref('')
+const loading = ref(false)
+const items = ref([])
 
-// 模拟历史数据
-const items = ref([
-  {
-    id: 1,
-    title: '冶金知识问答',
-    desc: '绿色焦化的技术原理和应用前景如何？',
-    date: '2025.05.31',
-    type: 'qa',
-    messageCount: 8,
-    duration: '15分钟'
-  },
-  {
-    id: 2,
-    title: '数据分析报告',
-    desc: '钢铁行业2024年产能利用率分析',
-    date: '2025.05.30',
-    type: 'analysis',
-    messageCount: 12,
-    duration: '25分钟'
-  },
-  {
-    id: 3,
-    title: '技术咨询对话',
-    desc: '关于高炉炼铁工艺优化的讨论',
-    date: '2025.05.29',
-    type: 'qa',
-    messageCount: 6,
-    duration: '10分钟'
-  },
-  {
-    id: 4,
-    title: '普通对话',
-    desc: '人工智能在制造业的应用趋势',
-    date: '2025.05.28',
-    type: 'chat',
-    messageCount: 4,
-    duration: '8分钟'
+const formatDate = (iso) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}.${m}.${day}`
+}
+
+const mapItem = (it) => {
+  const title = it.title || '未命名对话'
+  const messageCount = Number(it.message_count || 0)
+  const type = (Array.isArray(it.kb_ids) && it.kb_ids.length > 0) ? 'qa' : 'chat'
+  const minutes = Number(it.duration_minutes || 0)
+  const duration = minutes > 0 ? `${minutes}分钟` : ''
+  const desc = `共 ${messageCount} 条对话${duration ? ` · ${duration}` : ''}`
+  return {
+    id: it.id,
+    title,
+    desc,
+    date: formatDate(it.last_message_at || it.first_message_at),
+    type,
+    messageCount,
+    duration
   }
-])
+}
 
-// 计算属性：过滤后的项目
+const fetchItems = async () => {
+  loading.value = true
+  try {
+    const params = {}
+    if (searchText.value) params.q = searchText.value
+    const { data } = await listConversations(params)
+    const arr = data?.data || []
+    items.value = arr.map(mapItem)
+  } catch (e) {
+    message.error(e?.response?.data?.message || '加载失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(fetchItems)
+
+// 过滤
 const filteredItems = computed(() => {
   let result = items.value
-
-  // 按搜索文本过滤
-  if (searchText.value) {
-    const search = searchText.value.toLowerCase()
-    result = result.filter(item =>
-      item.title.toLowerCase().includes(search) ||
-      item.desc.toLowerCase().includes(search)
-    )
-  }
-
-  // 按类型过滤
   if (filterType.value) {
     result = result.filter(item => item.type === filterType.value)
   }
-
   return result
 })
 
-// 方法
-const onSearch = (value) => {
-  console.log('搜索:', value)
+// 交互
+const onSearch = async () => {
+  await fetchItems()
 }
 
 const openChat = (item) => {
-  message.info(`打开对话: ${item.title}`)
-  // 这里可以跳转到具体的对话页面
-  // router.push(`/app/chat/${item.id}`)
-}
-
-const shareChat = (item) => {
-  message.success(`分享对话: ${item.title}`)
-  // 实现分享功能
-}
-
-const deleteChat = (item) => {
-  message.warning(`删除对话: ${item.title}`)
-  // 实现删除功能
-  // items.value = items.value.filter(i => i.id !== item.id)
-}
-
-const goToHome = () => {
+  try { localStorage.setItem('kh_conversation_id', String(item.id)) } catch {}
   router.push('/app')
 }
+
+const shareChat = () => {
+  message.info('分享功能稍后支持')
+}
+
+const deleteChat = async (item) => {
+  if (!item?.id) return
+  const ok = window.confirm(`确定删除对话《${item.title}》吗？`)
+  if (!ok) return
+  try {
+    await deleteConversation(item.id)
+    items.value = items.value.filter(i => i.id !== item.id)
+    message.success('已删除')
+  } catch (e) {
+    message.error(e?.response?.data?.message || '删除失败')
+  }
+}
+
+const goToHome = () => { router.push('/app') }
 </script>
 
 <style scoped>
@@ -372,4 +370,3 @@ const goToHome = () => {
   }
 }
 </style>
-

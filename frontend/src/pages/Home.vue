@@ -88,7 +88,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, watch } from 'vue'
 import { message as antdMsg } from 'ant-design-vue'
 import { useRoute } from 'vue-router'
 import { createConversation, listMessages, sendMessage, sendMessageStream } from '../services/api'
@@ -155,6 +155,23 @@ onMounted(async () => {
     })
   }
 })
+
+// 监听路由参数变化：当收到 new=1 时强制新建一个会话
+watch(
+  () => route.query?.new,
+  async (val, oldVal) => {
+    if (val === '1' || val === 'true') {
+      try { localStorage.removeItem('kh_conversation_id') } catch {}
+      // 重置页面状态
+      conversationId.value = null
+      messages.value = []
+      isGenerating.value = false
+      await ensureConversation()
+      // 清理 URL，避免反复触发
+      try { window.history.replaceState({}, '', '/app') } catch {}
+    }
+  }
+)
 
 const onSend = async () => {
   if (!text.value.trim() || !conversationId.value || isGenerating.value) return
