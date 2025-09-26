@@ -1,28 +1,31 @@
 <template>
   <section class="wrap">
-    <div class="title">
-      <div class="h2">历史任务</div>
-      <div class="sub">查看您的以往对话与任务</div>
+    <div class="page-head">
+      <div class="title">
+        <div class="h2">历史任务</div>
+        <div class="sub">查看您的以往对话与任务</div>
+      </div>
+
+      <!-- 搜索和筛选 -->
+      <div class="filters">
+        <a-input-search
+          v-model:value="searchText"
+          placeholder="搜索历史对话..."
+          style="width: 300px"
+          @search="onSearch"
+        />
+        <a-select v-model:value="filterType" style="width: 120px" placeholder="全部类型">
+          <a-select-option value="">全部类型</a-select-option>
+          <a-select-option value="qa">知识问答</a-select-option>
+          <a-select-option value="analysis">数据分析</a-select-option>
+          <a-select-option value="chat">普通对话</a-select-option>
+        </a-select>
+      </div>
     </div>
 
-    <!-- 搜索和筛选 -->
-    <div class="filters">
-      <a-input-search
-        v-model:value="searchText"
-        placeholder="搜索历史对话..."
-        style="width: 300px"
-        @search="onSearch"
-      />
-      <a-select v-model:value="filterType" style="width: 120px" placeholder="全部类型">
-        <a-select-option value="">全部类型</a-select-option>
-        <a-select-option value="qa">知识问答</a-select-option>
-        <a-select-option value="analysis">数据分析</a-select-option>
-        <a-select-option value="chat">普通对话</a-select-option>
-      </a-select>
-    </div>
-
-    <!-- 历史任务列表 -->
-    <div class="list" v-if="filteredItems.length > 0">
+    <div class="page-body">
+      <!-- 历史任务列表 -->
+      <div class="list" v-if="filteredItems.length > 0">
       <div
         v-for="item in filteredItems"
         :key="item.id"
@@ -70,18 +73,19 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- 空状态 -->
-    <div v-else class="empty-state">
-      <div class="empty-icon">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#ddd"/>
-        </svg>
       </div>
-      <div class="empty-title">暂无历史对话</div>
-      <div class="empty-desc">开始您的第一次对话吧</div>
-      <a-button type="primary" @click="goToHome">开始对话</a-button>
+
+      <!-- 空状态 -->
+      <div v-else class="empty-state">
+        <div class="empty-icon">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#ddd"/>
+          </svg>
+        </div>
+        <div class="empty-title">暂无历史对话</div>
+        <div class="empty-desc">开始您的第一次对话吧</div>
+        <a-button type="primary" @click="goToHome">开始对话</a-button>
+      </div>
     </div>
   </section>
 </template>
@@ -188,6 +192,23 @@ const goToHome = () => { router.push('/app') }
   max-width: 1120px;
   margin: 0 auto;
   padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 64px);
+  min-height: 0; /* 使子元素可滚动 */
+  overflow: hidden;
+}
+
+.page-head {
+  flex: 0 0 auto;
+  background: transparent;
+}
+
+.page-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 24px;
 }
 
 .title {

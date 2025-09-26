@@ -29,6 +29,10 @@ class MessageCreate(BaseModel):
     max_tokens: Optional[int] = Field(default=None, ge=1)
     model: Optional[str] = None
     idempotency_key: Optional[str] = None
+    # retrieval overrides (optional)
+    retrieve_top_k: Optional[int] = Field(default=None, ge=1)
+    use_rerank: Optional[bool] = None
+    rerank_top_n: Optional[int] = Field(default=None, ge=1)
 
 
 class MessageOut(BaseModel):
@@ -49,4 +53,3 @@ class SendMessageResponse(BaseModel):
     user_message: MessageOut
     assistant_message: MessageOut
     conversation_id: int
-

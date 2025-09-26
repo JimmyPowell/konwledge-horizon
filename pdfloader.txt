@@ -1,0 +1,75 @@
+下面给出常见 PDF 解析器在你的场景中的对比与选型建议。你现在用的是 LangChain 的 PyPDFLoader（基于
+  pypdf），适合大多数“数字文本型”PDF；如果要覆盖扫描件、复杂版式或表格密集型文档，可以按下述对比扩展。
+
+  主流解析器对比
+
+  - PyPDFLoader（pypdf）
+      - 适用：数字文本 PDF，版式一般、无需 OCR
+      - 优点：纯 Python、依赖轻、稳定；逐页加载；与 LangChain 集成成熟
+      - 局限：无 OCR；多栏/复杂排版可能读序错乱；不提供字符坐标、表格结构
+  - PDFPlumberLoader（pdfplumber / pdfminer.six）
+      - 适用：需要更细粒度的文字/坐标信息、简单表格抽取
+      - 优点：基于 pdfminer，能拿字符/词/行坐标；对换行/连字符处理更可控；表格可配合提取
+      - 局限：比 pypdf 慢；仍无 OCR；对复杂表格结构化有限
+  - PyMuPDFLoader（fitz / PyMuPDF）
+      - 适用：复杂版式、版块/列/段落识别、需要更接近视觉排版的顺序
+      - 优点：C 底层，速度快；可拿“块/行/词”层次和边界框；可渲染页面配合 OCR
+      - 局限：解析策略需要调参（get_text("blocks"/"dict")）；仍非内置 OCR
+  - UnstructuredPDFLoader（unstructured）
+      - 适用：需要“按文档元素类型切分”（标题/段落/列表/表格），或需要 OCR
+      - 优点：能输出元素级别结构；可用 ocr_only/hi_res 模式处理扫描件；对富文本更友好
+      - 局限：依赖重（可能需 libmagic、poppler、tesseract 等系统组件）；资源占用高；部署复杂度大
+  - 专用表格工具（Camelot/Tabula 等）
+      - 适用：强表格 PDF 的结构化提取
+      - 优点：能输出 DataFrame/CSV；适用于规整网格表
+      - 局限：场景专用；对非表格文本帮助有限；Tabula 依赖 Java
+  - 纯 OCR 路径（pytesseract + pdf2image 或云 OCR）
+      - 适用：扫描件/图片型 PDF
+      - 优点：能覆盖无文字层 PDF
+      - 局限：慢、准确率受图片质量影响；需要版面重建（行/段/列）
+
+  效果与取舍要点
+
+  - 正确性（读序/断行）：PyMuPDF ≳ PDFPlumber > PyPDF（复杂版式差距更明显）
+  - 速度：PyMuPDF 快，PyPDF 次之，PDFPlumber 慢
+  - 结构信息：PDFPlumber/PyMuPDF 可拿坐标；Unstructured 可拿“元素类型”
+  - 扫描件：只有 OCR 路径（或 Unstructured 的 OCR 模式）能处理
+  - 依赖复杂度：PyPDF/Plumber/PyMuPDF 只需 pip；Unstructured/OCR 往往需系统依赖
+
+  你的项目的推荐策略
+
+  - 默认（覆盖 80% 数字文本 PDF）
+      - 继续用 PyPDFLoader（轻量稳定）
+  - 复杂版式/读序不理想时
+      - 回退到 PyMuPDFLoader（保留块级顺序更好）
+  - 表格为主的文档（仅当明确需要表格结构）
+      - 单独加一条表格提取流程（Camelot/Tabula），与主文本解析分开
+  - 扫描件/图片型 PDF
+      - 加“可选 OCR 模式”（Unstructured + OCR 或自建 OCR 流），作为最后兜底
+
+  在你现有代码中的落地方式
+
+  - parse_strategy 扩展（backend/app/services/doc_parse_service.py）
+      - strategy=auto：先尝试 PyPDF；若文本极少（字符数阈值 < N），判定可能是扫描件 → 若开启 OCR，再走
+  OCR；否则改走 PyMuPDF 再试
+      - strategy=’pymupdf’：显式用 PyMuPDFLoader
+      - strategy=’pdfplumber’：显式用 PDFPlumberLoader
+      - strategy=’ocr_only’：显式 OCR
+  - 前端“上传设置”中保留 parse_strategy 下拉（目前已暴露 auto/text），可再加 pymupdf/pdfplumber/ocr_only
+  以便测试对比
+  - 解析后统一返回纯文本给后续分片与嵌入（当前你的流水线不依赖坐标）
+
+  何时切换的启发式（可选）
+
+  - 文字量阈值：PyPDF 提取字符数 < 200 → 认为可能扫描件；若未启用 OCR，则尝试 PyMuPDF；仍失败报告 failed
+  - 多栏特征：统计每行的平均 X 坐标分布/突变；若明显分列，优先用 PyMuPDF 的块级文本
+  - 文件大小/页数很大：倾向 PyMuPDF（速度优势）
+
+  如果你希望，我可以把 doc_parse_service.py 升级为“多策略解析”，并在上传参数里增加 strategy 选项（pypdf/
+  pymupdf/pdfplumber/ocr_only/auto），同时在后端 settings 里加入“是否允许 OCR”的开关与依赖提示。这能在不改
+  变主流程的情况下，覆盖更多 PDF 类型。
+
+▌ Improve documentation in @filename                                                                     
+ ⏎ send   ⌃J newline   ⌃T transcript   ⌃C quit   625K tokens used   34% context left                      
+
+

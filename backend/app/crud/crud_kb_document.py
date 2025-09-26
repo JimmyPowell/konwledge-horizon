@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid as uuidlib
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Any
 
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
@@ -169,3 +169,39 @@ def soft_delete_document(
     _recompute_kb_aggregates(db, kb)
     db.commit()
     return True
+
+
+def update_document_status(
+    db: Session,
+    *,
+    doc_id: int,
+    status: Optional[str] = None,
+    error: Optional[str] = None,
+    chunk_count: Optional[int] = None,
+    processed_at: Optional[Any] = None,
+    ingest_params: Optional[str] = None,
+) -> Optional[KnowledgeDocument]:
+    doc = db.query(KnowledgeDocument).filter(KnowledgeDocument.id == doc_id).first()
+    if not doc:
+        return None
+    changed = False
+    if status is not None:
+        doc.status = status
+        changed = True
+    if error is not None:
+        doc.error = error
+        changed = True
+    if chunk_count is not None:
+        doc.chunk_count = int(chunk_count)
+        changed = True
+    if processed_at is not None:
+        doc.processed_at = processed_at
+        changed = True
+    if ingest_params is not None:
+        doc.ingest_params = ingest_params
+        changed = True
+    if changed:
+        db.add(doc)
+        db.commit()
+        db.refresh(doc)
+    return doc

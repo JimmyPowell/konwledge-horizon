@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, UploadFile, File, Form, BackgroundTasks
+import logging
 import os
 import pathlib
 import uuid as uuidlib
@@ -14,6 +15,8 @@ from app import models
 from app.schemas.kb import KBCreate, KBUpdate, KBOut, KBListOut
 from app.schemas.kb_document import DocumentCreate, DocumentOut, DocumentListOut
 from app.crud import crud_kb, crud_kb_document
+from app.services.index_service import index_document_background
+from app.services import chroma_client
 from app.utils.response import Success, BadRequest, NotFound, Created
 from app.config.settings import settings
 
@@ -171,10 +174,71 @@ def delete_document(
     db: Session = Depends(get_mysql_db),
     current_user: models.User = Depends(deps.get_current_user),
 ):
+    # best-effort: delete vectors first
+    kb = crud_kb.get_kb(db, kb_id, current_user.id)
+    doc = crud_kb_document.get_document(db, kb_id, doc_id, current_user.id)
+    if not kb or not doc:
+        return NotFound(message="Document not found")
+    try:
+        chroma_client.delete_by_doc_uid(kb.chroma_collection, doc.uid)
+    except Exception:
+        logger = logging.getLogger(__name__)
+        logger.warning("[kb.delete] chroma_delete_failed kb=%s doc=%s", kb_id, doc_id)
     ok = crud_kb_document.soft_delete_document(db, kb_id, doc_id, current_user.id)
     if not ok:
         return NotFound(message="Document not found")
     return Success(message="Deleted")
+
+
+@router.post("/bases/{kb_id}/documents/{doc_id}/reprocess")
+def reprocess_document(
+    kb_id: int,
+    doc_id: int,
+    chunk_size: int | None = Form(None),
+    overlap: int | None = Form(None),
+    parse_strategy: str | None = Form(None),
+    embedding_model: str | None = Form(None),
+    db: Session = Depends(get_mysql_db),
+    current_user: models.User = Depends(deps.get_current_user),
+    background_tasks: BackgroundTasks = None,
+):
+    kb = crud_kb.get_kb(db, kb_id, current_user.id)
+    doc = crud_kb_document.get_document(db, kb_id, doc_id, current_user.id)
+    if not kb or not doc:
+        return NotFound(message="Document not found")
+    # remove old vectors
+    try:
+        chroma_client.delete_by_doc_uid(kb.chroma_collection, doc.uid)
+    except Exception:
+        logger = logging.getLogger(__name__)
+        logger.warning("[kb.reprocess] chroma_delete_failed kb=%s doc=%s", kb_id, doc_id)
+
+    # mark processing with new params
+    import json as _json
+    ingest = {
+        "chunk_size": chunk_size,
+        "overlap": overlap,
+        "parse_strategy": parse_strategy,
+        "embedding_model": embedding_model,
+    }
+    ingest = {k: v for k, v in ingest.items() if v is not None}
+    crud_kb_document.update_document_status(
+        db,
+        doc_id=doc_id,
+        status="processing",
+        error=None,
+        ingest_params=_json.dumps(ingest, ensure_ascii=False),
+    )
+
+    try:
+        if background_tasks is not None:
+            background_tasks.add_task(index_document_background, kb_id, doc_id, current_user.id)
+    except Exception:
+        logger = logging.getLogger(__name__)
+        logger.debug("[kb.reprocess] schedule_failed kb=%s doc=%s", kb_id, doc_id)
+
+    updated = crud_kb_document.get_document(db, kb_id, doc_id, current_user.id)
+    return Success(data=DocumentOut.model_validate(updated).model_dump(mode='json'), message="Reindex scheduled")
 
 
 def _sanitize_filename(name: str) -> str:
@@ -194,8 +258,13 @@ def _sanitize_filename(name: str) -> str:
 def upload_document(
     kb_id: int,
     file: UploadFile = File(...),
+    chunk_size: int | None = Form(None),
+    overlap: int | None = Form(None),
+    parse_strategy: str | None = Form(None),
+    embedding_model: str | None = Form(None),
     db: Session = Depends(get_mysql_db),
     current_user: models.User = Depends(deps.get_current_user),
+    background_tasks: BackgroundTasks = None,
 ):
     # Validate extension and size while streaming to disk
     orig_name = file.filename or 'file'
@@ -267,4 +336,29 @@ def upload_document(
             pass
         return NotFound(message="Knowledge base not found")
 
-    return Created(data=DocumentOut.model_validate(doc).model_dump(mode='json'))
+    # mark as processing with ingest params for background
+    import json as _json
+    ingest = {
+        "chunk_size": chunk_size,
+        "overlap": overlap,
+        "parse_strategy": parse_strategy,
+        "embedding_model": embedding_model,
+    }
+    ingest = {k: v for k, v in ingest.items() if v is not None}
+    crud_kb_document.update_document_status(
+        db,
+        doc_id=doc.id,
+        status="processing",
+        ingest_params=_json.dumps(ingest, ensure_ascii=False),
+    )
+
+    # schedule background indexing
+    try:
+        if background_tasks is not None:
+            background_tasks.add_task(index_document_background, kb_id, doc.id, current_user.id)
+    except Exception:
+        logger = logging.getLogger(__name__)
+        logger.debug("[kb.upload] schedule_index_failed kb=%s doc=%s", kb_id, doc.id)
+
+    updated = crud_kb_document.get_document(db, kb_id, doc.id, current_user.id)
+    return Created(data=DocumentOut.model_validate(updated).model_dump(mode='json'))

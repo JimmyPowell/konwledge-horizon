@@ -11,3 +11,9 @@ email-validator
 fastapi-mail
 python-multipart
 httpx
+chromadb>=0.5.0,<0.6.0
+langchain>=0.2.15,<0.3.0
+langchain-community>=0.2.15,<0.3.0
+langchain-text-splitters>=0.2.0,<0.3.0
+pypdf>=4.2.0,<5
+docx2txt>=0.8

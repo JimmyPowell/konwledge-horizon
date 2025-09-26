@@ -1,47 +1,48 @@
 <template>
   <section class="wrap">
-    <div class="title">
-      <div class="h2">知识库管理</div>
-      <div class="sub">查看和添加知识库</div>
-    </div>
+    <div class="page-head">
+      <div class="title">
+        <div class="h2">知识库管理</div>
+        <div class="sub">查看和添加知识库</div>
+      </div>
 
-    <div class="toolbar">
-      <div class="toolbar-left">
-        <a-segmented v-model:value="filter" :options="filters" />
-        <a-input-search
-          v-model:value="q"
-          class="search"
-          placeholder="搜索知识库..."
-          allow-clear
-          @search="onSearch"
-        />
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <a-segmented v-model:value="filter" :options="filters" />
+          <a-input-search
+            v-model:value="q"
+            class="search"
+            placeholder="搜索知识库..."
+            allow-clear
+            @search="onSearch"
+          />
+        </div>
+        <div class="toolbar-right">
+          <a-button @click="openCreateKB">
+            <template #icon>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/>
+              </svg>
+            </template>
+            新建知识库
+          </a-button>
+        </div>
       </div>
-      <div class="toolbar-right">
-        <a-button @click="openCreateKB">
-          <template #icon>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/>
-            </svg>
-          </template>
-          新建知识库
-        </a-button>
-        
-      </div>
-    </div>
 
-    <!-- 统计信息 -->
-    <div class="stats">
-      <div class="stat-item">
-        <div class="stat-number">{{ totalFiles }}</div>
-        <div class="stat-label">总文件数</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">{{ totalSize }}</div>
-        <div class="stat-label">总大小</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">{{ recentUploads }}</div>
-        <div class="stat-label">本月上传</div>
+      <!-- 统计信息 -->
+      <div class="stats">
+        <div class="stat-item">
+          <div class="stat-number">{{ totalFiles }}</div>
+          <div class="stat-label">总文件数</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">{{ totalSize }}</div>
+          <div class="stat-label">总大小</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">{{ recentUploads }}</div>
+          <div class="stat-label">本月上传</div>
+        </div>
       </div>
     </div>
 
@@ -61,6 +62,9 @@
             <a-select-option value="public">公开</a-select-option>
           </a-select>
         </a-form-item>
+        <a-form-item label="Embedding 模型（可选）">
+          <a-input v-model:value="createForm.embedding_model" placeholder="如 BAAI/bge-m3，留空用默认" />
+        </a-form-item>
       </a-form>
     </a-modal>
 
@@ -79,11 +83,15 @@
             <a-select-option value="public">公开</a-select-option>
           </a-select>
         </a-form-item>
+        <a-form-item label="Embedding 模型（可选）">
+          <a-input v-model:value="editForm.embedding_model" placeholder="如 BAAI/bge-m3，留空用默认" />
+        </a-form-item>
       </a-form>
     </a-modal>
 
-    <!-- 知识库网格 -->
-    <div class="grid" v-if="filtered.length > 0">
+    <div class="page-body">
+      <!-- 知识库网格 -->
+      <div class="grid" v-if="filtered.length > 0">
       <div
         v-for="item in filtered"
         :key="item.id"
@@ -155,18 +163,19 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- 空状态 -->
-    <div v-else class="empty-state">
-      <div class="empty-icon">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
-          <path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z" fill="#ddd"/>
-        </svg>
       </div>
-      <div class="empty-title">暂无知识库文件</div>
-      <div class="empty-desc">上传您的第一个文件开始构建知识库</div>
-      <a-button type="primary" @click="openCreateKB">新建知识库</a-button>
+
+      <!-- 空状态 -->
+      <div v-else class="empty-state">
+        <div class="empty-icon">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+            <path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z" fill="#ddd"/>
+          </svg>
+        </div>
+        <div class="empty-title">暂无知识库文件</div>
+        <div class="empty-desc">上传您的第一个文件开始构建知识库</div>
+        <a-button type="primary" @click="openCreateKB">新建知识库</a-button>
+      </div>
     </div>
   </section>
 </template>
@@ -197,12 +206,12 @@ const listLoading = ref(false)
 // 新建/编辑
 const createVisible = ref(false)
 const createLoading = ref(false)
-const createForm = ref({ name: '', description: '', visibility: 'private' })
+const createForm = ref({ name: '', description: '', visibility: 'private', embedding_model: '' })
 
 const editVisible = ref(false)
 const editLoading = ref(false)
 const currentEditId = ref(null)
-const editForm = ref({ name: '', description: '', visibility: 'private' })
+const editForm = ref({ name: '', description: '', visibility: 'private', embedding_model: '' })
 
 const formatBytes = (bytes) => {
   const n = Number(bytes || 0)
@@ -263,6 +272,7 @@ const filtered = computed(() => {
 
 const openCreateKB = () => {
   createForm.value = { name: '', description: '', visibility: 'private' }
+  createForm.value.embedding_model = ''
   createVisible.value = true
 }
 
@@ -290,6 +300,7 @@ const editKnowledge = (item) => {
     name: item.name,
     description: item.description || '',
     visibility: item.visibility || 'private',
+    embedding_model: item.embedding_model || ''
   }
   editVisible.value = true
 }
@@ -348,6 +359,22 @@ const deleteKnowledge = async (item) => {
   max-width: 1120px;
   margin: 0 auto;
   padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 64px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.page-head {
+  flex: 0 0 auto;
+}
+
+.page-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 24px;
 }
 
 .title {

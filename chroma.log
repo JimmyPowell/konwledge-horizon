@@ -1,0 +1,62 @@
+[33mWARNING[0m:  [26-09-2025 14:38:06] chroma_server_nofile is set to 65535, but this is less than current soft limit of 1048575. chroma_server_nofile will not be set.
+[32mINFO[0m:     [26-09-2025 14:38:06] Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+[36mDEBUG[0m:    [26-09-2025 14:38:06] Starting component System
+[36mDEBUG[0m:    [26-09-2025 14:38:06] Starting component OpenTelemetryClient
+[36mDEBUG[0m:    [26-09-2025 14:38:06] Starting component SqliteDB
+[36mDEBUG[0m:    [26-09-2025 14:38:06] Starting component SimpleQuotaEnforcer
+[36mDEBUG[0m:    [26-09-2025 14:38:06] Starting component Posthog
+[36mDEBUG[0m:    [26-09-2025 14:38:06] Starting component SimpleRateLimitEnforcer
+[36mDEBUG[0m:    [26-09-2025 14:38:06] Starting component LocalSegmentManager
+[36mDEBUG[0m:    [26-09-2025 14:38:06] Starting component LocalExecutor
+[36mDEBUG[0m:    [26-09-2025 14:38:06] Starting component SegmentAPI
+[31mERROR[0m:    [26-09-2025 14:38:06] Failed to send telemetry event ServerStartEvent: capture() takes 1 positional argument but 3 were given
+[32mINFO[0m:     [26-09-2025 14:38:06] Started server process [[36m88671[0m]
+[32mINFO[0m:     [26-09-2025 14:38:06] Waiting for application startup.
+[32mINFO[0m:     [26-09-2025 14:38:06] Application startup complete.
+[32mINFO[0m:     [26-09-2025 14:38:06] Uvicorn running on [1mhttp://0.0.0.0:8001[0m (Press CTRL+C to quit)
+[32mINFO[0m:     [26-09-2025 14:42:09] 127.0.0.1:64351 - "GET /api/v2/auth/identity HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 14:42:09] 127.0.0.1:64357 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 14:42:09] 127.0.0.1:64359 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[31mERROR[0m:    [26-09-2025 14:42:09] Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+[32mINFO[0m:     [26-09-2025 14:42:09] 127.0.0.1:64361 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 14:42:09] 127.0.0.1:64363 - "GET /api/v2/pre-flight-checks HTTP/1.1" 200
+[36mDEBUG[0m:    [26-09-2025 14:42:09] Starting component PersistentLocalHnswSegment
+[32mINFO[0m:     [26-09-2025 14:42:09] 127.0.0.1:64365 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/c3ccef57-66fc-4e15-98bb-4eaa6a04af4e/upsert HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 14:59:11] 127.0.0.1:56862 - "GET /api/v2/auth/identity HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 14:59:11] 127.0.0.1:56864 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 14:59:11] 127.0.0.1:56866 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 14:59:11] 127.0.0.1:56868 - "GET /api/v2/heartbeat HTTP/1.1" 200
+[36mDEBUG[0m:    [26-09-2025 14:59:11] Collection kb_0e9ce069-b248-43fe-bc57-4a29ff3377de already exists, returning existing collection.
+[31mERROR[0m:    [26-09-2025 14:59:11] Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+[32mINFO[0m:     [26-09-2025 14:59:11] 127.0.0.1:56870 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 14:59:11] 127.0.0.1:56872 - "GET /api/v2/pre-flight-checks HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 14:59:11] 127.0.0.1:56874 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/c3ccef57-66fc-4e15-98bb-4eaa6a04af4e/upsert HTTP/1.1" 200
+[36mDEBUG[0m:    [26-09-2025 15:02:34] Collection kb_0e9ce069-b248-43fe-bc57-4a29ff3377de already exists, returning existing collection.
+[31mERROR[0m:    [26-09-2025 15:02:34] Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+[32mINFO[0m:     [26-09-2025 15:02:34] 127.0.0.1:58227 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 15:02:34] 127.0.0.1:58229 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/c3ccef57-66fc-4e15-98bb-4eaa6a04af4e/upsert HTTP/1.1" 200
+[36mDEBUG[0m:    [26-09-2025 15:17:22] Collection kb_0e9ce069-b248-43fe-bc57-4a29ff3377de already exists, returning existing collection.
+[31mERROR[0m:    [26-09-2025 15:17:22] Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+[32mINFO[0m:     [26-09-2025 15:17:22] 127.0.0.1:49337 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 15:54:04] 127.0.0.1:57466 - "GET /api/v2/auth/identity HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 15:54:04] 127.0.0.1:57468 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 15:54:04] 127.0.0.1:57470 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 15:54:04] 127.0.0.1:57472 - "GET /api/v2/heartbeat HTTP/1.1" 200
+[36mDEBUG[0m:    [26-09-2025 15:54:04] Collection kb_0e9ce069-b248-43fe-bc57-4a29ff3377de already exists, returning existing collection.
+[31mERROR[0m:    [26-09-2025 15:54:04] Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+[32mINFO[0m:     [26-09-2025 15:54:04] 127.0.0.1:57474 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 15:54:04] 127.0.0.1:57476 - "GET /api/v2/pre-flight-checks HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 15:54:04] 127.0.0.1:57478 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/c3ccef57-66fc-4e15-98bb-4eaa6a04af4e/upsert HTTP/1.1" 200
+[36mDEBUG[0m:    [26-09-2025 15:54:27] Collection kb_0e9ce069-b248-43fe-bc57-4a29ff3377de already exists, returning existing collection.
+[31mERROR[0m:    [26-09-2025 15:54:27] Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+[32mINFO[0m:     [26-09-2025 15:54:27] 127.0.0.1:57547 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[31mERROR[0m:    [26-09-2025 15:54:27] Failed to send telemetry event CollectionQueryEvent: capture() takes 1 positional argument but 3 were given
+[32mINFO[0m:     [26-09-2025 15:54:27] 127.0.0.1:57549 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/c3ccef57-66fc-4e15-98bb-4eaa6a04af4e/query HTTP/1.1" 200
+[36mDEBUG[0m:    [26-09-2025 15:56:41] Collection kb_0e9ce069-b248-43fe-bc57-4a29ff3377de already exists, returning existing collection.
+[31mERROR[0m:    [26-09-2025 15:56:41] Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+[32mINFO[0m:     [26-09-2025 15:56:41] 127.0.0.1:57885 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 15:56:41] 127.0.0.1:57887 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/c3ccef57-66fc-4e15-98bb-4eaa6a04af4e/query HTTP/1.1" 200
+[36mDEBUG[0m:    [26-09-2025 15:57:18] Collection kb_0e9ce069-b248-43fe-bc57-4a29ff3377de already exists, returning existing collection.
+[31mERROR[0m:    [26-09-2025 15:57:18] Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+[32mINFO[0m:     [26-09-2025 15:57:18] 127.0.0.1:57961 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [26-09-2025 15:57:18] 127.0.0.1:57963 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/c3ccef57-66fc-4e15-98bb-4eaa6a04af4e/query HTTP/1.1" 200

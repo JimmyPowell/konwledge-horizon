@@ -47,6 +47,26 @@ class Settings(BaseSettings):
     STORAGE_ROOT: str = "storage"
     MAX_UPLOAD_BYTES: int = 50 * 1024 * 1024
 
+    # Chroma vector DB (independent server recommended)
+    CHROMA_HOST: str = "localhost"
+    CHROMA_PORT: int = 8001
+    CHROMA_PATH: str = "./chroma_data"  # used only for embedded mode
+
+    # Embedding / indexing defaults
+    EMBEDDING_MODEL_DEFAULT: str = "BAAI/bge-m3"
+    CHUNK_SIZE_DEFAULT: int = 1000
+    CHUNK_OVERLAP_DEFAULT: int = 200
+    PARSE_STRATEGY_DEFAULT: str = "auto"
+
+    # Retrieval / RAG settings
+    RAG_ENABLED: bool = True
+    RAG_TOP_K: int = 6
+    RAG_PER_KB_K: int | None = None
+    RERANK_ENABLED: bool = False
+    RERANK_MODEL: str = "BAAI/bge-reranker-v2-m3"
+    RERANK_TOP_N: int = 6
+    MAX_CONTEXT_CHARS: int = 8000
+
     # Title generation
     LLM_TITLE_MODEL: Optional[str] = None  # fallback to LLM_DEFAULT_MODEL if None
     TITLE_MAX_TOKENS: int = 32

@@ -7,9 +7,10 @@ from typing import Dict, Iterable, List, Optional, Tuple
 from sqlalchemy.orm import Session
 
 from app.config.settings import settings
-from app.crud import crud_chat
+from app.crud import crud_chat, crud_kb
 from app.models.chat import Message
 from app.services.llm_service import llm_client
+from app.services.retrieval_service import retrieve_collections
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,9 @@ def non_stream_chat(
     temperature: Optional[float] = None,
     top_p: Optional[float] = None,
     max_tokens: Optional[int] = None,
+    rag_top_k: Optional[int] = None,
+    rag_use_rerank: Optional[bool] = None,
+    rag_rerank_top_n: Optional[int] = None,
 ) -> Tuple[Message, Message]:
     # persist user message
     logger.info(
@@ -58,6 +62,49 @@ def non_stream_chat(
 
     # build context
     msgs = build_context_messages(db, conversation_id, user_id, new_content=content, model=model)
+
+    # RAG retrieval (prepend system message)
+    try:
+        if settings.RAG_ENABLED:
+            kb_ids = crud_chat.list_conversation_kb_ids(db, conversation_id)
+            if kb_ids:
+                collections = []
+                for kb_id in kb_ids:
+                    kb = crud_kb.get_kb(db, kb_id, owner_id=user_id)
+                    if kb and kb.chroma_collection:
+                        collections.append({"kb_id": kb_id, "collection": kb.chroma_collection})
+                if collections:
+                    chunks = retrieve_collections(
+                        query_text=content,
+                        collections=collections,
+                        top_k=(rag_top_k or settings.RAG_TOP_K),
+                        per_kb_k=settings.RAG_PER_KB_K,
+                        use_rerank=(settings.RERANK_ENABLED if rag_use_rerank is None else bool(rag_use_rerank)),
+                        rerank_top_n=(rag_rerank_top_n or settings.RERANK_TOP_N),
+                    )
+                    if chunks:
+                        parts: List[str] = []
+                        used = 0
+                        for i, ch in enumerate(chunks, 1):
+                            t = (ch.get("text") or "").strip()
+                            if not t:
+                                continue
+                            # limit per chunk
+                            t = t[:800]
+                            line = f"[{i}] {t}"
+                            if used + len(line) > settings.MAX_CONTEXT_CHARS:
+                                break
+                            parts.append(line)
+                            used += len(line)
+                        if parts:
+                            src = "\n".join(parts)
+                            sys_prompt = (
+                                "你是一个知识助手。以下是与用户问题相关的知识库片段：\n" + src +
+                                "\n请优先基于这些片段回答；若无法从中得到答案，请明确说明不确定。"
+                            )
+                            msgs.insert(0, {"role": "system", "content": sys_prompt})
+    except Exception:
+        logger.exception("[non_stream_chat] rag_inject_failed conv=%s", conversation_id)
     logger.info(
         "[non_stream_chat] context_built conv=%s turns=%s",
         conversation_id,
@@ -125,6 +172,9 @@ def stream_chat_generator(
     temperature: Optional[float] = None,
     top_p: Optional[float] = None,
     max_tokens: Optional[int] = None,
+    rag_top_k: Optional[int] = None,
+    rag_use_rerank: Optional[bool] = None,
+    rag_rerank_top_n: Optional[int] = None,
 ) -> Iterable[str]:
     # persist user message first
     logger.info(
@@ -142,6 +192,48 @@ def stream_chat_generator(
     )
 
     msgs = build_context_messages(db, conversation_id, user_id, new_content=content, model=model)
+
+    # RAG retrieval
+    try:
+        if settings.RAG_ENABLED:
+            kb_ids = crud_chat.list_conversation_kb_ids(db, conversation_id)
+            if kb_ids:
+                collections = []
+                for kb_id in kb_ids:
+                    kb = crud_kb.get_kb(db, kb_id, owner_id=user_id)
+                    if kb and kb.chroma_collection:
+                        collections.append({"kb_id": kb_id, "collection": kb.chroma_collection})
+                if collections:
+                    chunks = retrieve_collections(
+                        query_text=content,
+                        collections=collections,
+                        top_k=(rag_top_k or settings.RAG_TOP_K),
+                        per_kb_k=settings.RAG_PER_KB_K,
+                        use_rerank=(settings.RERANK_ENABLED if rag_use_rerank is None else bool(rag_use_rerank)),
+                        rerank_top_n=(rag_rerank_top_n or settings.RERANK_TOP_N),
+                    )
+                    if chunks:
+                        parts: List[str] = []
+                        used = 0
+                        for i, ch in enumerate(chunks, 1):
+                            t = (ch.get("text") or "").strip()
+                            if not t:
+                                continue
+                            t = t[:800]
+                            line = f"[{i}] {t}"
+                            if used + len(line) > settings.MAX_CONTEXT_CHARS:
+                                break
+                            parts.append(line)
+                            used += len(line)
+                        if parts:
+                            src = "\n".join(parts)
+                            sys_prompt = (
+                                "你是一个知识助手。以下是与用户问题相关的知识库片段：\n" + src +
+                                "\n请优先基于这些片段回答；若无法从中得到答案，请明确说明不确定。"
+                            )
+                            msgs.insert(0, {"role": "system", "content": sys_prompt})
+    except Exception:
+        logger.exception("[stream_chat] rag_inject_failed conv=%s", conversation_id)
 
     t0 = time.time()
     accumulated: List[str] = []

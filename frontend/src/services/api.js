@@ -306,10 +306,23 @@ export const createKBDocument = (kbId, payload) =>
 export const deleteKBDocument = (kbId, docId) =>
   api.delete(`/api/v1/kb/bases/${kbId}/documents/${docId}`)
 
-export const uploadKBDocument = (kbId, file) => {
+export const uploadKBDocument = (kbId, file, params = {}) => {
   const fd = new FormData()
   fd.append('file', file)
+  if (params && typeof params === 'object') {
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null && v !== '') fd.append(k, String(v))
+    }
+  }
   return api.post(`/api/v1/kb/bases/${kbId}/documents/upload`, fd, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
+}
+
+export const reprocessKBDocument = (kbId, docId, params = {}) => {
+  const fd = new FormData()
+  for (const [k, v] of Object.entries(params || {})) {
+    if (v !== undefined && v !== null && v !== '') fd.append(k, String(v))
+  }
+  return api.post(`/api/v1/kb/bases/${kbId}/documents/${docId}/reprocess`, fd)
 }

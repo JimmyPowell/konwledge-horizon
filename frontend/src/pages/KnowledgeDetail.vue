@@ -29,6 +29,12 @@
         </div>
       </div>
       <div class="kb-actions">
+        <a-button style="margin-right:8px" @click="openUploadSettings">
+          <template #icon>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zm9.4 4a7.4 7.4 0 01-.2 1.6l2.1 1.6-2 3.5-2.5-1a7.8 7.8 0 01-2.7 1.6l-.4 2.6H10l-.4-2.6a7.8 7.8 0 01-2.7-1.6l-2.5 1-2-3.5 2.1-1.6A7.4 7.4 0 014 12c0-.6.1-1.1.2-1.6L2.1 8.8l2-3.5 2.5 1c.8-.7 1.7-1.2 2.7-1.6L10 2h4l.4 2.6c1 .4 1.9.9 2.7 1.6l2.5-1 2 3.5-2.1 1.6c.1.5.2 1 .2 1.6z"/></svg>
+          </template>
+          上传设置
+        </a-button>
         <a-button type="primary" size="large" @click="triggerFileSelect">
           <template #icon>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -39,10 +45,10 @@
         </a-button>
         <input ref="fileInput" type="file" @change="onFileSelected" style="display:none" accept=".pdf,.doc,.docx,.txt,.md" />
       </div>
-    </div>
+  </div>
 
-    <!-- 文件列表 -->
-    <div class="file-list">
+  <!-- 文件列表 -->
+  <div class="file-list">
       <div class="list-header">
         <div class="list-title">文件列表</div>
         <div class="list-actions">
@@ -52,7 +58,30 @@
             style="width: 300px"
             @search="onSearch"
           />
-        </div>
+  </div>
+
+  <!-- 上传设置弹窗 -->
+  <a-modal v-model:open="settingsVisible" title="上传设置" ok-text="确定" cancel-text="取消" @ok="onSettingsConfirm">
+    <a-form layout="vertical">
+      <a-form-item label="Chunk Size">
+        <a-input-number v-model:value="form.chunk_size" :min="100" :max="4000" :step="100" />
+        <div class="tip">每段文本的最大长度，默认 1000</div>
+      </a-form-item>
+      <a-form-item label="Overlap">
+        <a-input-number v-model:value="form.overlap" :min="0" :max="1000" :step="50" />
+        <div class="tip">段落之间的重叠长度，默认 200</div>
+      </a-form-item>
+      <a-form-item label="解析策略">
+        <a-select v-model:value="form.parse_strategy" style="width:240px">
+          <a-select-option value="auto">自动</a-select-option>
+          <a-select-option value="text">纯文本</a-select-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item label="Embedding 模型（可选）">
+        <a-input v-model:value="form.embedding_model" placeholder="留空则使用知识库默认或全局默认" />
+      </a-form-item>
+    </a-form>
+  </a-modal>
       </div>
 
       <div class="table-container">
@@ -87,9 +116,9 @@
                 {{ getStatusText(record.status) }}
               </a-tag>
             </template>
-            <template v-else-if="column.key === 'actions'">
-              <div class="action-buttons">
-                <a-button type="text" size="small" @click="previewFile(record)">
+          <template v-else-if="column.key === 'actions'">
+            <div class="action-buttons">
+              <a-button type="text" size="small" @click="previewFile(record)">
                   <template #icon>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"/>
@@ -102,8 +131,15 @@
                       <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/>
                     </svg>
                   </template>
-                </a-button>
-                <a-button type="text" size="small" @click="deleteFile(record)" danger>
+              </a-button>
+              <a-button type="text" size="small" @click="openReprocessSettings(record)">
+                <template #icon>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12,4V1L8,5l4,4V6c3.31,0,6,2.69,6,6c0,1.01-0.25,1.96-0.69,2.79l1.46,1.46C19.54,15.07,20,13.58,20,12 C20,7.58,16.42,4,12,4z M6.69,7.21L5.23,5.75C4.46,6.93,4,8.42,4,10c0,4.42,3.58,8,8,8v3l4-4l-4-4v3c-3.31,0-6-2.69-6-6 C6,8.99,6.25,8.04,6.69,7.21z"/>
+                  </svg>
+                </template>
+              </a-button>
+              <a-button type="text" size="small" @click="deleteFile(record)" danger>
                   <template #icon>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -125,7 +161,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
-import { getKB, listKBDocuments, deleteKBDocument, uploadKBDocument } from '../services/api'
+import { getKB, listKBDocuments, deleteKBDocument, uploadKBDocument, reprocessKBDocument } from '../services/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -142,7 +178,8 @@ const knowledgeBase = ref({
   description: '',
   docCount: 0,
   totalSize: '0 B',
-  createdAt: ''
+  createdAt: '',
+  embedding_model: ''
 })
 
 const formatFileSize = (bytes) => {
@@ -169,7 +206,8 @@ const loadKB = async () => {
       description: kb.description || '',
       docCount: kb.doc_count || 0,
       totalSize: formatFileSize(kb.total_size_bytes || 0),
-      createdAt: formatDate(kb.created_at)
+      createdAt: formatDate(kb.created_at),
+      embedding_model: kb.embedding_model || ''
     }
   } catch (e) {
     message.error(e?.response?.data?.message || '加载知识库失败')
@@ -327,6 +365,35 @@ const triggerFileSelect = () => {
   fileInput.value?.click()
 }
 
+// 上传设置
+const settingsVisible = ref(false)
+const form = ref({
+  chunk_size: 1000,
+  overlap: 200,
+  parse_strategy: 'auto',
+  embedding_model: ''
+})
+
+const openUploadSettings = () => {
+  // default from KB on first open
+  if (!form.value.embedding_model) {
+    form.value.embedding_model = knowledgeBase.value.embedding_model || ''
+  }
+  settingsVisible.value = true
+}
+
+const settingsAction = ref('upload') // 'upload' | 'reprocess'
+const reprocessTargetId = ref(null)
+
+const openReprocessSettings = (record) => {
+  if (!form.value.embedding_model) {
+    form.value.embedding_model = knowledgeBase.value.embedding_model || ''
+  }
+  settingsAction.value = 'reprocess'
+  reprocessTargetId.value = record.id
+  settingsVisible.value = true
+}
+
 const onFileSelected = async (e) => {
   const f = e.target.files && e.target.files[0]
   if (!f) return
@@ -342,13 +409,29 @@ const onFileSelected = async (e) => {
   if (!isLt50M) { message.error('文件大小不能超过 50MB'); e.target.value = ''; return }
   try {
     message.loading('上传中...', 1)
-    await uploadKBDocument(Number(knowledgeBaseId.value), f)
+    await uploadKBDocument(Number(knowledgeBaseId.value), f, form.value)
     message.success('上传成功')
     await Promise.all([loadDocuments(), loadKB()])
   } catch (err) {
     message.error(err?.response?.data?.message || '上传失败')
   } finally {
     e.target.value = ''
+  }
+}
+
+const onSettingsConfirm = async () => {
+  if (settingsAction.value === 'reprocess' && reprocessTargetId.value) {
+    try {
+      await reprocessKBDocument(Number(knowledgeBaseId.value), Number(reprocessTargetId.value), form.value)
+      message.success('已提交重新索引')
+      settingsVisible.value = false
+      await Promise.all([loadDocuments(), loadKB()])
+    } catch (e) {
+      message.error(e?.response?.data?.message || '提交失败')
+    }
+  } else {
+    // for upload settings we just close; settings are used when selecting file
+    settingsVisible.value = false
   }
 }
 

@@ -67,8 +67,8 @@
           size="small"
           shape="round"
           type="default"
-          :class="{ 'config-button': true, 'active': active === 'config' }"
-          @click="active='config'"
+          :class="{ 'config-button': true }"
+          @click="openKbConfig"
         >
           知识库配置
         </a-button>
@@ -111,6 +111,27 @@
         </div>
       </div>
     </div>
+
+    <!-- KB 绑定与检索设置弹窗 -->
+    <a-modal v-model:open="kbModalVisible" title="知识库配置" ok-text="确定" cancel-text="取消" @ok="confirmKbConfig">
+      <div style="display:flex; flex-direction: column; gap: 12px;">
+        <div>
+          <div style="margin-bottom:6px;color:#666;">选择要绑定到会话的知识库（可多选）</div>
+          <a-select v-model:value="selectedKbIds" mode="multiple" style="width: 100%" placeholder="请选择知识库">
+            <a-select-option v-for="opt in kbOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</a-select-option>
+          </a-select>
+        </div>
+        <div style="margin-top:8px;color:#999;">检索设置（可选）</div>
+        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+          <div>Top K: <a-input-number v-model:value="retrieveTopK" :min="1" :max="20" /></div>
+          <div>
+            <a-switch v-model:checked="useRerank" /> 重排序
+          </div>
+          <div v-if="useRerank">Rerank Top N: <a-input-number v-model:value="rerankTopN" :min="1" :max="20" /></div>
+        </div>
+        <div style="color:#999; font-size:12px;">注意：保存后将创建一个新会话并绑定所选知识库。</div>
+      </div>
+    </a-modal>
   </section>
 </template>
 
@@ -118,7 +139,7 @@
 import { ref, onMounted, nextTick, watch } from 'vue'
 import { message as antdMsg } from 'ant-design-vue'
 import { useRoute } from 'vue-router'
-import { createConversation, listMessages, sendMessage, sendMessageStream } from '../services/api'
+import { createConversation, listMessages, sendMessage, sendMessageStream, listKBs } from '../services/api'
 import MarkdownRenderer from '../components/MarkdownRenderer.vue'
 
 const active = ref('config')
@@ -129,6 +150,42 @@ const messages = ref([])
 const messagesContainer = ref(null)
 const conversationId = ref(null)
 const isGenerating = ref(false) // 添加生成状态
+
+// KB 绑定与检索设置
+const kbModalVisible = ref(false)
+const kbOptions = ref([]) // [{label, value}]
+const selectedKbIds = ref([])
+const retrieveTopK = ref(6)
+const useRerank = ref(false)
+const rerankTopN = ref(6)
+
+const openKbConfig = async () => {
+  try {
+    const { data } = await listKBs({ limit: 100, offset: 0 })
+    const items = data?.data?.items || []
+    kbOptions.value = items.map(it => ({ label: it.name, value: it.id }))
+  } catch (e) {
+    antdMsg.error(e?.response?.data?.message || '加载知识库失败')
+  }
+  kbModalVisible.value = true
+}
+
+const confirmKbConfig = async () => {
+  try {
+    const payload = { title: '新的对话', kb_ids: selectedKbIds.value }
+    const { data } = await createConversation(payload)
+    const conv = data?.data
+    if (!conv?.id) throw new Error('创建新会话失败')
+    conversationId.value = conv.id
+    try { localStorage.setItem('kh_conversation_id', String(conv.id)) } catch {}
+    // 重置消息并提示
+    messages.value = [{ type: 'ai', content: '已绑定知识库，开始提问吧。', time: formatTime(new Date()) }]
+    kbModalVisible.value = false
+    antdMsg.success('知识库绑定成功，已创建新会话')
+  } catch (e) {
+    antdMsg.error(e?.response?.data?.message || e?.message || '绑定失败')
+  }
+}
 
 const btnType = (key) => (active.value === key ? 'primary' : 'default')
 const toggleWeb = () => { webEnabled.value = !webEnabled.value }
@@ -257,7 +314,7 @@ const onSend = async () => {
       scrollToBottom()
 
       console.log('📤 [onSend] 发送非流式请求...')
-      const { data } = await sendMessage(conversationId.value, { content })
+      const { data } = await sendMessage(conversationId.value, { content, retrieve_top_k: retrieveTopK.value, use_rerank: useRerank.value, rerank_top_n: rerankTopN.value })
       console.log('📥 [onSend] 收到非流式响应:', data)
       const payload = data?.data || {}
       const asst = payload.assistant_message || {}
@@ -304,7 +361,7 @@ const onSend = async () => {
     scrollToBottom()
 
     console.log('📤 [onSend] 发送流式请求...')
-    await sendMessageStream(conversationId.value, { content }, (evt) => {
+    await sendMessageStream(conversationId.value, { content, retrieve_top_k: retrieveTopK.value, use_rerank: useRerank.value, rerank_top_n: rerankTopN.value }, (evt) => {
       console.log('📥 [onSend] 收到流式数据:', evt)
       if (evt?.text && aiMsgIndex >= 0) {
         // 使用响应式更新：创建新对象

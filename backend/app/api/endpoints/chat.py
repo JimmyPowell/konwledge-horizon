@@ -124,6 +124,9 @@ def send_message(
         temperature=body.temperature,
         top_p=body.top_p,
         max_tokens=body.max_tokens,
+        rag_top_k=body.retrieve_top_k,
+        rag_use_rerank=body.use_rerank,
+        rag_rerank_top_n=body.rerank_top_n,
     )
 
     user_dict = {
@@ -199,6 +202,9 @@ def send_message_stream(
         temperature=body.temperature,
         top_p=body.top_p,
         max_tokens=body.max_tokens,
+        rag_top_k=body.retrieve_top_k,
+        rag_use_rerank=body.use_rerank,
+        rag_rerank_top_n=body.rerank_top_n,
     )
     logger.info("[api.chat] stream_begin conv=%s", conversation_id)
     resp = StreamingResponse(gen, media_type="text/event-stream")
