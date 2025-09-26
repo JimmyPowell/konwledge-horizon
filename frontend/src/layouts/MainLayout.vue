@@ -16,7 +16,7 @@
     <a-layout>
       <a-layout-sider width="220" theme="light" :style="{ background: '#fff', borderRight: '1px solid #eee' }">
         <a-menu theme="light" mode="inline" v-model:selectedKeys="selectedKeys" @click="onMenu">
-          <a-menu-item key="home">首页</a-menu-item>
+          <a-menu-item key="home">新建对话</a-menu-item>
           <a-menu-item key="history">历史任务</a-menu-item>
           <a-menu-item key="knowledge">我的知识库</a-menu-item>
           <a-menu-item key="workflow">工作流广场</a-menu-item>
@@ -49,8 +49,12 @@ onMounted(() => {
 
 const onMenu = ({ key }) => {
   selectedKeys.value = [key]
-  if (key === 'home') router.push('/app')
-  else router.push(`/app/${key}`)
+  if (key === 'home') {
+    try { localStorage.removeItem('kh_conversation_id') } catch {}
+    router.push('/app?new=1')
+  } else {
+    router.push(`/app/${key}`)
+  }
 }
 </script>
 

@@ -52,6 +52,8 @@ def list_conversations(
     current_user: models.User = Depends(deps.get_current_user),
 ):
     rows = crud_chat.list_user_conversations(db, current_user.id, limit=limit, offset=offset)
+    conv_ids = [c.id for c in rows]
+    msg_counts = crud_chat.get_message_counts_for_conversations(db, conv_ids)
     out = []
     for c in rows:
         kb_ids = crud_chat.list_conversation_kb_ids(db, c.id)
@@ -61,6 +63,7 @@ def list_conversations(
             "title": c.title,
             "kb_ids": kb_ids,
             "model": c.model,
+            "message_count": msg_counts.get(c.id, 0),
             "last_message_at": c.last_message_at.isoformat() if c.last_message_at else None,
         })
     return Success(data=out)

@@ -4,7 +4,7 @@ import uuid as uuidlib
 import logging
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 
 from app.models.chat import Conversation, ConversationKB, Message
 
@@ -29,10 +29,11 @@ def create_conversation(db: Session, user_id: int, title: Optional[str], kb_ids:
 
 
 def list_user_conversations(db: Session, user_id: int, limit: int = 20, offset: int = 0) -> List[Conversation]:
+    # MySQL 不支持 "NULLS LAST" 语法，这里用布尔排序把 NULL 放到最后，再按时间与 id 倒序
     q = (
         db.query(Conversation)
         .filter(Conversation.user_id == user_id, Conversation.deleted_at.is_(None))
-        .order_by(desc(Conversation.last_message_at.nullslast()), desc(Conversation.id))
+        .order_by(Conversation.last_message_at.is_(None), desc(Conversation.last_message_at), desc(Conversation.id))
         .limit(limit)
         .offset(offset)
     )
@@ -114,3 +115,18 @@ def get_recent_messages_for_context(db: Session, conversation_id: int, user_id: 
     rows = q.all()
     rows.reverse()
     return rows
+
+
+def get_message_counts_for_conversations(db: Session, conversation_ids: List[int]) -> dict[int, int]:
+    if not conversation_ids:
+        return {}
+    rows = (
+        db.query(Message.conversation_id, func.count(Message.id))
+        .filter(Message.conversation_id.in_(conversation_ids))
+        .group_by(Message.conversation_id)
+        .all()
+    )
+    out: dict[int, int] = {}
+    for cid, cnt in rows:
+        out[int(cid)] = int(cnt)
+    return out

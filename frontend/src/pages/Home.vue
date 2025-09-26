@@ -18,11 +18,23 @@
           </div>
           <div class="message-content">
             <div class="message-text">
-              <MarkdownRenderer
-                v-if="message.type === 'ai'"
-                :content="message.content"
-              />
-              <span v-else>{{ message.content }}</span>
+              <!-- AI消息加载状态 -->
+              <div v-if="message.type === 'ai' && message.isLoading" class="loading-container">
+                <div class="typing-indicator">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+                <span class="loading-text">正在思考中...</span>
+              </div>
+              <!-- 正常消息内容 -->
+              <template v-else>
+                <MarkdownRenderer
+                  v-if="message.type === 'ai'"
+                  :content="message.content"
+                />
+                <span v-else>{{ message.content }}</span>
+              </template>
             </div>
             <div class="message-time">{{ message.time }}</div>
           </div>
@@ -78,6 +90,7 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import { message as antdMsg } from 'ant-design-vue'
+import { useRoute } from 'vue-router'
 import { createConversation, listMessages, sendMessage, sendMessageStream } from '../services/api'
 import MarkdownRenderer from '../components/MarkdownRenderer.vue'
 
@@ -103,8 +116,11 @@ const scrollToBottom = () => {
   })
 }
 
+const route = useRoute()
+
 const ensureConversation = async () => {
-  const saved = localStorage.getItem('kh_conversation_id')
+  const forceNew = route.query?.new === '1' || route.query?.new === 'true'
+  const saved = !forceNew ? localStorage.getItem('kh_conversation_id') : null
   if (saved) {
     conversationId.value = Number(saved)
     await loadHistory()
@@ -156,7 +172,12 @@ const onSend = async () => {
     let aiMsgIndex = -1
     try {
       // 先插入占位的“生成中”气泡
-      const aiMsg = { type: 'ai', content: '正在生成…', time: formatTime(new Date()) }
+      const aiMsg = {
+        type: 'ai',
+        content: '',
+        isLoading: true,
+        time: formatTime(new Date())
+      }
       messages.value.push(aiMsg)
       aiMsgIndex = messages.value.length - 1
       scrollToBottom()
@@ -170,6 +191,7 @@ const onSend = async () => {
         messages.value[aiMsgIndex] = {
           type: 'ai',
           content: asst.content || '抱歉，没有收到回复内容',
+          isLoading: false,
           time: formatTime(new Date())
         }
       }
@@ -180,6 +202,7 @@ const onSend = async () => {
         messages.value[aiMsgIndex] = {
           type: 'ai',
           content: '抱歉，发生了错误，请重试',
+          isLoading: false,
           time: formatTime(new Date())
         }
       }
@@ -193,7 +216,12 @@ const onSend = async () => {
   // 流式模式
   let aiMsgIndex = -1
   try {
-    const aiMsg = { type: 'ai', content: '', time: formatTime(new Date()) }
+    const aiMsg = {
+      type: 'ai',
+      content: '',
+      isLoading: true,
+      time: formatTime(new Date())
+    }
     messages.value.push(aiMsg)
     aiMsgIndex = messages.value.length - 1
     scrollToBottom()
@@ -204,7 +232,8 @@ const onSend = async () => {
         const currentMsg = messages.value[aiMsgIndex]
         messages.value[aiMsgIndex] = {
           ...currentMsg,
-          content: currentMsg.content + evt.text
+          content: currentMsg.content + evt.text,
+          isLoading: false // 开始接收内容时取消加载状态
         }
         scrollToBottom()
       }
@@ -217,7 +246,14 @@ const onSend = async () => {
         if (aiMsgIndex >= 0 && !messages.value[aiMsgIndex].content.trim()) {
           messages.value[aiMsgIndex] = {
             ...messages.value[aiMsgIndex],
-            content: '抱歉，没有收到回复内容'
+            content: '抱歉，没有收到回复内容',
+            isLoading: false
+          }
+        } else if (aiMsgIndex >= 0) {
+          // 确保加载状态被清除
+          messages.value[aiMsgIndex] = {
+            ...messages.value[aiMsgIndex],
+            isLoading: false
           }
         }
       }
@@ -331,7 +367,7 @@ const onNewLine = () => { text.value += '\n' }
 
 .message-content {
   max-width: 75%;
-  min-width: 160px;
+  min-width: fit-content; /* 改为自适应内容宽度 */
 }
 
 .message.user .message-content {
@@ -372,6 +408,50 @@ const onNewLine = () => { text.value += '\n' }
 .message.user .message-time {
   color: #bbb;
   font-size: 11px;
+}
+
+/* 加载状态样式 */
+.loading-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #1890ff;
+  animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.loading-text {
+  color: #666;
+  font-size: 14px;
+}
+
+@keyframes typing {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* 底部控制区域 */
