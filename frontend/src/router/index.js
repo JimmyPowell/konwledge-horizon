@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { getAccessToken } from '../utils/tokens'
+import Landing from '../pages/Landing.vue'
 import Auth from '../pages/Auth.vue'
 import MainLayout from '../layouts/MainLayout.vue'
 import Home from '../pages/Home.vue'
@@ -8,7 +9,7 @@ import Knowledge from '../pages/Knowledge.vue'
 import KnowledgeDetail from '../pages/KnowledgeDetail.vue'
 
 const routes = [
-  { path: '/', redirect: () => (getAccessToken() ? '/app' : '/auth') },
+  { path: '/', name: 'landing', component: Landing },
   { path: '/login', redirect: '/auth' },
   { path: '/auth', name: 'auth', component: Auth },
   {

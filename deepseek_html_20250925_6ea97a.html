@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEUSteel Agent - 钢铁智能，冶铸未来</title>
+    <style>
+        /* 基础样式 */
+        :root {
+            --primary-color: #1a365d; /* 深蓝钢色 */
+            --secondary-color: #c53030; /* 炽热红色 */
+            --accent-color: #d69e2e; /* 金色 */
+            --light-color: #f7fafc;
+            --dark-color: #2d3748;
+            --gray-color: #a0aec0;
+            --steel-gradient: linear-gradient(135deg, #4a5568, #2d3748);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: var(--dark-color);
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        
+        /* 导航栏 */
+        header {
+            background: var(--steel-gradient);
+            color: white;
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+        
+        .nav-links li {
+            margin-left: 2rem;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--accent-color);
+        }
+        
+        /* 英雄区域 */
+        .hero {
+            background: var(--steel-gradient);
+            color: white;
+            padding: 5rem 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,100 Z" fill="rgba(255,255,255,0.05)"/></svg>');
+            background-size: cover;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        
+        .hero p {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .tagline {
+            color: var(--accent-color);
+            font-weight: bold;
+            font-size: 1.8rem;
+            margin: 1rem 0;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: var(--secondary-color);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background 0.3s, transform 0.3s;
+            margin-top: 1rem;
+        }
+        
+        .cta-button:hover {
+            background: #b91c1c;
+            transform: translateY(-3px);
+        }
+        
+        /* 功能区域 */
+        .features {
+            padding: 5rem 0;
+            background-color: white;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 3rem;
+            font-size: 2.2rem;
+            color: var(--primary-color);
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .feature-card {
+            background: var(--light-color);
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            color: white;
+            font-size: 1.5rem;
+        }
+        
+        .feature-card h3 {
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+        
+        /* 交互区域 */
+        .interactive {
+            padding: 5rem 0;
+            background: var(--steel-gradient);
+            color: white;
+        }
+        
+        .chat-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        .chat-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .chat-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+        }
+        
+        .chat-messages {
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+        
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.8rem;
+            border-radius: 5px;
+            max-width: 80%;
+        }
+        
+        .user-message {
+            background: rgba(213, 158, 46, 0.3);
+            margin-left: auto;
+        }
+        
+        .agent-message {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .chat-input {
+            display: flex;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 5px 0 0 5px;
+            background: rgba(255,255,255,0.9);
+        }
+        
+        .chat-input button {
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 0 5px 5px 0;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .chat-input button:hover {
+            background: #b91c1c;
+        }
+        
+        /* 关于区域 */
+        .about {
+            padding: 5rem 0;
+            background-color: white;
+        }
+        
+        .about-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+        
+        .about-text h2 {
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+        }
+        
+        .about-image {
+            background: var(--light-color);
+            height: 300px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5rem;
+            color: var(--primary-color);
+        }
+        
+        /* 页脚 */
+        footer {
+            background: var(--dark-color);
+            color: white;
+            padding: 3rem 0 1.5rem;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .footer-section h3 {
+            margin-bottom: 1.5rem;
+            color: var(--accent-color);
+        }
+        
+        .footer-section ul {
+            list-style: none;
+        }
+        
+        .footer-section ul li {
+            margin-bottom: 0.8rem;
+        }
+        
+        .footer-section a {
+            color: var(--gray-color);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-section a:hover {
+            color: var(--accent-color);
+        }
+        
+        .copyright {
+            text-align: center;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: var(--gray-color);
+            font-size: 0.9rem;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .hero h1 {
+                font-size: 2.2rem;
+            }
+            
+            .hero p {
+                font-size: 1.2rem;
+            }
+            
+            .about-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo">
+                    <div class="logo-icon">N</div>
+                    <span>NEUSteel Agent</span>
+                </div>
+                <ul class="nav-links">
+                    <li><a href="#features">核心功能</a></li>
+                    <li><a href="#interactive">智能交互</a></li>
+                    <li><a href="#about">关于我们</a></li>
+                    <li><a href="#contact">联系我们</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 英雄区域 -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1>NEUSteel Agent</h1>
+                <div class="tagline">钢铁智能，冶铸未来！</div>
+                <p>NEUSteel Agent: Forging the Future of Metallurgy.</p>
+                <p>东北大学冶金行业知识智能体，融合人工智能与行业专业知识，为冶金行业提供智能化解决方案。</p>
+                <a href="#interactive" class="cta-button">立即体验</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 功能区域 -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">核心功能</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⚙️</div>
+                    <h3>工艺优化</h3>
+                    <p>基于大数据分析和机器学习算法，优化冶金生产工艺参数，提高生产效率和产品质量。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h3>故障诊断</h3>
+                    <p>实时监测设备状态，智能诊断生产故障，提供解决方案，减少停机时间。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>数据分析</h3>
+                    <p>对生产数据进行深度挖掘，发现潜在规律，为决策提供数据支持。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🧠</div>
+                    <h3>知识问答</h3>
+                    <p>基于冶金行业知识图谱，提供准确、专业的问答服务，解决技术难题。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📈</div>
+                    <h3>预测维护</h3>
+                    <p>预测设备故障和维护需求，制定最优维护计划，降低维护成本。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌱</div>
+                    <h3>绿色生产</h3>
+                    <p>优化能源使用和排放控制，助力冶金行业实现绿色、可持续发展。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 交互区域 -->
+    <section class="interactive" id="interactive">
+        <div class="container">
+            <h2 class="section-title">与NEUSteel Agent对话</h2>
+            <div class="chat-container">
+                <div class="chat-header">
+                    <div class="chat-icon">N</div>
+                    <h3>NEUSteel Agent 智能助手</h3>
+                </div>
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message agent-message">
+                        <strong>NEUSteel Agent:</strong> 您好！我是NEUSteel Agent，东北大学冶金行业知识智能体。我可以为您解答冶金行业相关问题，提供工艺优化建议，分析生产数据等。请问有什么可以帮您？
+                    </div>
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="user-input" placeholder="输入您的问题...">
+                    <button id="send-btn">发送</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 关于区域 -->
+    <section class="about" id="about">
+        <div class="container">
+            <div class="about-content">
+                <div class="about-text">
+                    <h2>关于NEUSteel Agent</h2>
+                    <p>NEUSteel Agent是东北大学基于人工智能技术开发的冶金行业专业知识智能体。它融合了东北大学在冶金领域的深厚学术积累与前沿人工智能技术，旨在为冶金行业提供智能化解决方案。</p>
+                    <p>我们的智能体具备强大的自然语言处理能力、数据分析和机器学习算法，能够理解复杂的冶金工艺问题，提供专业的解答和优化建议。</p>
+                    <p>NEUSteel Agent将持续学习最新的冶金技术和行业动态，不断完善知识体系，为冶金行业的数字化转型和智能化升级提供有力支持。</p>
+                </div>
+                <div class="about-image">
+                    🏭
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer id="contact">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>NEUSteel Agent</h3>
+                    <p>钢铁智能，冶铸未来！</p>
+                    <p>NEUSteel Agent: Forging the Future of Metallurgy.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>快速链接</h3>
+                    <ul>
+                        <li><a href="#features">核心功能</a></li>
+                        <li><a href="#interactive">智能交互</a></li>
+                        <li><a href="#about">关于我们</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>联系我们</h3>
+                    <ul>
+                        <li>东北大学冶金学院-软件学院</li>
+                        <li>辽宁省沈阳市和平区文化路3号巷11号</li>
+                        <li>电话: 024-83689542</li>
+                        <li>邮箱: lihf@smm.neu.edu.cn</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; 2025 东北大学 NEUSteel Agent 项目组. 保留所有权利.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 简单的聊天功能实现
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatMessages = document.getElementById('chat-messages');
+            const userInput = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+            
+            // 预定义回复
+            const responses = {
+                '你好': '您好！我是NEUSteel Agent，很高兴为您服务。',
+                '功能': '我可以提供冶金工艺优化、故障诊断、数据分析、知识问答、预测维护和绿色生产等方面的服务。',
+                '工艺': '冶金工艺优化包括炼铁、炼钢、连铸、轧制等环节的参数优化和质量控制。',
+                '故障': '请描述具体的设备或工艺问题，我将帮助您诊断并提供解决方案。',
+                '数据': '我可以分析生产数据，发现潜在规律，为决策提供支持。',
+                '东北大学': '东北大学是冶金工程领域的知名高校，在冶金技术和材料科学方面有深厚的研究基础。',
+                '冶金': '冶金是从矿石中提取金属或金属化合物，并加工成具有一定性能的金属材料的过程。'
+            };
+            
+            // 发送消息函数
+            function sendMessage() {
+                const message = userInput.value.trim();
+                if (message === '') return;
+                
+                // 添加用户消息
+                addMessage(message, 'user');
+                
+                // 清空输入框
+                userInput.value = '';
+                
+                // 模拟AI回复（延迟）
+                setTimeout(() => {
+                    let response = '我还在学习中，暂时无法回答这个问题。您可以尝试询问关于冶金工艺、故障诊断或数据分析等方面的问题。';
+                    
+                    // 查找匹配的回复
+                    for (const key in responses) {
+                        if (message.includes(key)) {
+                            response = responses[key];
+                            break;
+                        }
+                    }
+                    
+                    addMessage(response, 'agent');
+                }, 1000);
+            }
+            
+            // 添加消息到聊天窗口
+            function addMessage(text, sender) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message');
+                messageDiv.classList.add(sender === 'user' ? 'user-message' : 'agent-message');
+                
+                const senderName = sender === 'user' ? '您' : 'NEUSteel Agent';
+                messageDiv.innerHTML = `<strong>${senderName}:</strong> ${text}`;
+                
+                chatMessages.appendChild(messageDiv);
+                
+                // 滚动到底部
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            // 事件监听
+            sendBtn.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

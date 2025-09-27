@@ -495,6 +495,7 @@ const onNewLine = () => { text.value += '\n' }
   flex-direction: column;
   position: relative;
   overflow: hidden; /* 防止整体横向滚动 */
+  background: var(--bg-primary);
 }
 
 /* 对话容器 */
@@ -503,9 +504,11 @@ const onNewLine = () => { text.value += '\n' }
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   overflow: hidden; /* 防止整体滚动 */
   position: relative;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-steel);
 }
 
 .messages {
@@ -570,14 +573,17 @@ const onNewLine = () => { text.value += '\n' }
 }
 
 .message.ai .message-avatar {
-  background: #ffffff;
-  border: 1px solid #e8e8e8;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background: var(--steel-gradient);
+  border: 1px solid var(--primary-color);
+  box-shadow: var(--shadow-steel);
+  color: var(--accent-color);
+  font-weight: bold;
 }
 
 .message.user .message-avatar {
-  background: #f0f2f5;
-  color: #666;
+  background: var(--accent-gradient);
+  color: var(--text-primary);
+  border: 1px solid var(--accent-color);
 }
 
 .message-content {
@@ -595,28 +601,30 @@ const onNewLine = () => { text.value += '\n' }
 }
 
 .message-text {
-  background: #ffffff;
-  padding: 12px 16px; /* 减少内边距 */
-  border-radius: 12px; /* 减少圆角 */
-  line-height: 1.5; /* 减少行高 */
+  background: var(--bg-secondary);
+  padding: 14px 18px;
+  border-radius: var(--radius-xl);
+  line-height: var(--leading-relaxed);
   word-wrap: break-word;
-  word-break: break-word; /* 强制长单词换行 */
-  overflow-wrap: break-word; /* 兼容性 */
-  font-size: 14px; /* 减少字体大小 */
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1); /* 减少阴影 */
-  border: 1px solid #e8e8e8;
-  max-width: 100%; /* 确保不超出容器 */
+  word-break: break-word;
+  overflow-wrap: break-word;
+  font-size: var(--text-sm);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-light);
+  max-width: 100%;
+  color: var(--text-primary);
 }
 
 .message.user .message-text {
-  background: #ffffff;
-  color: #555;
-  border: 1px solid #e8e8e8;
-  font-size: 14px;
-  padding: 10px 14px; /* 减少用户消息内边距 */
-  white-space: pre-wrap; /* 用户消息保持换行 */
-  word-break: break-word; /* 强制长单词换行 */
-  text-align: left; /* 气泡内文字左对齐，避免空白 */
+  background: var(--accent-gradient);
+  color: var(--text-primary);
+  border: 1px solid var(--accent-color);
+  font-size: var(--text-sm);
+  padding: 12px 16px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-align: left;
+  font-weight: 500;
 }
 
 .message.ai .message-text {
@@ -688,9 +696,11 @@ const onNewLine = () => { text.value += '\n' }
   left: 0;
   right: 0;
   padding: 16px 20px 20px;
-  border-top: 1px solid #e8e8e8;
-  background: #f5f5f5;
+  border-top: 1px solid var(--border-light);
+  background: var(--bg-secondary);
   z-index: 10;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
 }
 
   .pills {
@@ -746,22 +756,22 @@ const onNewLine = () => { text.value += '\n' }
   position: relative;
   display: flex;
   align-items: flex-end;
-  background: #ffffff;
-  border: 1px solid #d9d9d9;
-  border-radius: 16px;
-  padding: 12px 52px 12px 16px; /* 调整右侧padding为按钮留出空间 */
-  transition: all 0.3s;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-2xl);
+  padding: 12px 52px 12px 16px;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-md);
 }
 
 .input-wrapper:hover {
-  border-color: #40a9ff;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  border-color: var(--accent-color);
+  box-shadow: var(--shadow-lg);
 }
 
 .input-wrapper:focus-within {
-  border-color: #1890ff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(214, 158, 46, 0.2);
 }
 
 .chat-input {

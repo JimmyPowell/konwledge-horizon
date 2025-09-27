@@ -201,3 +201,15 @@
 [31mERROR[0m:    [27-09-2025 08:16:15] Failed to send telemetry event CollectionQueryEvent: capture() takes 1 positional argument but 3 were given
 [36mDEBUG[0m:    [27-09-2025 08:16:15] Starting component PersistentLocalHnswSegment
 [32mINFO[0m:     [27-09-2025 08:16:15] 127.0.0.1:54990 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/7f2dc423-4c39-4d21-84aa-2b46dba0c4a1/query HTTP/1.1" 200
+[36mDEBUG[0m:    [27-09-2025 08:30:39] Collection kb_aeb6fdde-15be-4fd4-9250-d06a2937cb6a already exists, returning existing collection.
+[31mERROR[0m:    [27-09-2025 08:30:39] Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+[32mINFO[0m:     [27-09-2025 08:30:39] 127.0.0.1:51137 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [27-09-2025 08:30:39] 127.0.0.1:51139 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/7f2dc423-4c39-4d21-84aa-2b46dba0c4a1/query HTTP/1.1" 200
+[36mDEBUG[0m:    [27-09-2025 08:31:02] Collection kb_aeb6fdde-15be-4fd4-9250-d06a2937cb6a already exists, returning existing collection.
+[31mERROR[0m:    [27-09-2025 08:31:02] Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+[32mINFO[0m:     [27-09-2025 08:31:02] 127.0.0.1:51456 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [27-09-2025 08:31:02] 127.0.0.1:51458 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/7f2dc423-4c39-4d21-84aa-2b46dba0c4a1/query HTTP/1.1" 200
+[36mDEBUG[0m:    [27-09-2025 08:33:09] Collection kb_aeb6fdde-15be-4fd4-9250-d06a2937cb6a already exists, returning existing collection.
+[31mERROR[0m:    [27-09-2025 08:33:09] Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+[32mINFO[0m:     [27-09-2025 08:33:09] 127.0.0.1:53262 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [27-09-2025 08:33:09] 127.0.0.1:53264 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/7f2dc423-4c39-4d21-84aa-2b46dba0c4a1/query HTTP/1.1" 200

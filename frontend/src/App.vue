@@ -2,7 +2,7 @@
   <a-config-provider :locale="zhCN" component-size="large">
     <div class="app">
       <NavBar v-if="showGlobalNav" />
-      <main class="container" :class="{ full: isAuth || isApp }">
+      <main class="container" :class="{ full: isAuth || isApp || isLanding }">
         <router-view />
       </main>
     </div>
@@ -19,7 +19,8 @@ import zhCN from 'ant-design-vue/es/locale/zh_CN'
 const route = useRoute()
 const isAuth = computed(() => route.path.startsWith('/auth'))
 const isApp = computed(() => route.path.startsWith('/app'))
-const showGlobalNav = computed(() => !(isAuth.value || isApp.value))
+const isLanding = computed(() => route.path === '/')
+const showGlobalNav = computed(() => !(isAuth.value || isApp.value || isLanding.value))
 </script>
 
 <style>
