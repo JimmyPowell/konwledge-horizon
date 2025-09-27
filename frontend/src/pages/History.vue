@@ -50,7 +50,7 @@
           <div class="desc">{{ item.desc }}</div>
           <div class="stats">
             <span class="message-count">{{ item.messageCount }} 条对话</span>
-            <span class="duration">{{ item.duration }}</span>
+            <span v-if="item.lastActive" class="last-active">最后活跃：{{ item.lastActive }}</span>
           </div>
         </div>
         <div class="actions">
@@ -113,13 +113,23 @@ const formatDate = (iso) => {
   return `${y}.${m}.${day}`
 }
 
+const formatDateTime = (iso) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${y}.${m}.${day} ${hh}:${mm}`
+}
+
 const mapItem = (it) => {
   const title = it.title || '未命名对话'
   const messageCount = Number(it.message_count || 0)
   const type = (Array.isArray(it.kb_ids) && it.kb_ids.length > 0) ? 'qa' : 'chat'
-  const minutes = Number(it.duration_minutes || 0)
-  const duration = minutes > 0 ? `${minutes}分钟` : ''
-  const desc = `共 ${messageCount} 条对话${duration ? ` · ${duration}` : ''}`
+  const lastActive = formatDateTime(it.last_message_at || it.first_message_at)
+  const desc = `共 ${messageCount} 条对话`
   return {
     id: it.id,
     title,
@@ -127,7 +137,7 @@ const mapItem = (it) => {
     date: formatDate(it.last_message_at || it.first_message_at),
     type,
     messageCount,
-    duration
+    lastActive
   }
 }
 
@@ -303,7 +313,7 @@ const goToHome = () => { router.push('/app') }
 }
 
 .message-count,
-.duration {
+.last-active {
   font-size: 12px;
   color: #999;
   background: #f8f9fa;

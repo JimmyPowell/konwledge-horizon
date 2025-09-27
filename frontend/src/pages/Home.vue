@@ -58,20 +58,15 @@
           size="small"
           shape="round"
           type="default"
-          :class="{ 'config-button': true, 'active': webEnabled }"
-          @click="toggleWeb"
-        >
-          联网搜索
-        </a-button>
-        <a-button
-          size="small"
-          shape="round"
-          type="default"
           :class="{ 'config-button': true }"
           @click="openKbConfig"
         >
           知识库配置
         </a-button>
+        <div class="kb-tags" v-if="currentKbLabels.length">
+          <span class="kb-label">本会话知识库：</span>
+          <a-tag v-for="(name, idx) in currentKbLabels" :key="idx" style="margin-right:6px;">{{ name }}</a-tag>
+        </div>
         <a-button
           size="small"
           shape="round"
@@ -121,6 +116,9 @@
             <a-select-option v-for="opt in kbOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</a-select-option>
           </a-select>
         </div>
+        <div>
+          <a-checkbox v-model:checked="setAsDefaultKb">设为默认知识库（默认仅保存第一个）</a-checkbox>
+        </div>
         <div style="margin-top:8px;color:#999;">检索设置（可选）</div>
         <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
           <div>Top K: <a-input-number v-model:value="retrieveTopK" :min="1" :max="20" /></div>
@@ -136,15 +134,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, onMounted, nextTick, watch, computed } from 'vue'
 import { message as antdMsg } from 'ant-design-vue'
 import { useRoute } from 'vue-router'
-import { createConversation, listMessages, sendMessage, sendMessageStream, listKBs } from '../services/api'
+import { createConversation, listMessages, sendMessage, sendMessageStream, listKBs, listConversations } from '../services/api'
 import MarkdownRenderer from '../components/MarkdownRenderer.vue'
+import { useSettingsStore } from '../stores/settings'
 
 const active = ref('config')
-const webEnabled = ref(false)
-const isStreamMode = ref(true) // 默认为流式模式
+const settingsStore = useSettingsStore()
+const settingsLoaded = computed(() => settingsStore.loaded)
+const webEnabled = computed(() => settingsStore.web_search)
+const isStreamMode = computed(() => settingsStore.streaming)
 const text = ref('')
 const messages = ref([])
 const messagesContainer = ref(null)
@@ -155,6 +156,10 @@ const isGenerating = ref(false) // 添加生成状态
 const kbModalVisible = ref(false)
 const kbOptions = ref([]) // [{label, value}]
 const selectedKbIds = ref([])
+const setAsDefaultKb = ref(false)
+const kbNameMap = ref({}) // { id: name }
+const currentKbIds = ref([]) // 当前会话绑定的 KB ids
+const currentKbLabels = computed(() => (currentKbIds.value || []).map(id => kbNameMap.value[id] || `KB #${id}`))
 const retrieveTopK = ref(6)
 const useRerank = ref(false)
 const rerankTopN = ref(6)
@@ -164,6 +169,9 @@ const openKbConfig = async () => {
     const { data } = await listKBs({ limit: 100, offset: 0 })
     const items = data?.data?.items || []
     kbOptions.value = items.map(it => ({ label: it.name, value: it.id }))
+    const mp = {}
+    for (const it of items) mp[it.id] = it.name
+    kbNameMap.value = mp
   } catch (e) {
     antdMsg.error(e?.response?.data?.message || '加载知识库失败')
   }
@@ -172,15 +180,27 @@ const openKbConfig = async () => {
 
 const confirmKbConfig = async () => {
   try {
-    const payload = { title: '新的对话', kb_ids: selectedKbIds.value }
+    const payload = { kb_ids: selectedKbIds.value }
+    // 若用户勾选“设为默认知识库”，将多选中的第一个持久化到用户设置
+    if (Array.isArray(selectedKbIds.value) && selectedKbIds.value.length > 0 && setAsDefaultKb.value) {
+      const first = selectedKbIds.value[0]
+      const res = await settingsStore.update({ default_kb_id: first })
+      if (!res?.ok) {
+        antdMsg.warning(res?.error || '默认知识库保存失败，但会话将继续创建')
+      } else {
+        antdMsg.success('已将默认知识库保存为你的偏好')
+      }
+    }
     const { data } = await createConversation(payload)
     const conv = data?.data
     if (!conv?.id) throw new Error('创建新会话失败')
     conversationId.value = conv.id
+    currentKbIds.value = Array.isArray(conv.kb_ids) ? conv.kb_ids : []
     try { localStorage.setItem('kh_conversation_id', String(conv.id)) } catch {}
     // 重置消息并提示
     messages.value = [{ type: 'ai', content: '已绑定知识库，开始提问吧。', time: formatTime(new Date()) }]
     kbModalVisible.value = false
+    setAsDefaultKb.value = false
     antdMsg.success('知识库绑定成功，已创建新会话')
   } catch (e) {
     antdMsg.error(e?.response?.data?.message || e?.message || '绑定失败')
@@ -188,8 +208,22 @@ const confirmKbConfig = async () => {
 }
 
 const btnType = (key) => (active.value === key ? 'primary' : 'default')
-const toggleWeb = () => { webEnabled.value = !webEnabled.value }
-const toggleStreamMode = () => { isStreamMode.value = !isStreamMode.value }
+const toggleWeb = async () => {
+  if (!settingsLoaded.value) {
+    await settingsStore.load()
+  }
+  const next = !webEnabled.value
+  const res = await settingsStore.update({ web_search: next })
+  if (!res?.ok) antdMsg.error(res?.error || '更新联网偏好失败')
+}
+const toggleStreamMode = async () => {
+  if (!settingsLoaded.value) {
+    await settingsStore.load()
+  }
+  const next = !isStreamMode.value
+  const res = await settingsStore.update({ streaming: next })
+  if (!res?.ok) antdMsg.error(res?.error || '更新流式偏好失败')
+}
 
 const formatTime = (date) => date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
 
@@ -203,6 +237,17 @@ const scrollToBottom = () => {
 
 const route = useRoute()
 
+// 当消息为空时插入欢迎语
+const insertWelcomeIfEmpty = () => {
+  if (!messages.value || messages.value.length === 0) {
+    messages.value.push({
+      type: 'ai',
+      content: '欢迎使用 Knowledge-Horizon 智能知识库系统！请输入您的问题。',
+      time: formatTime(new Date())
+    })
+  }
+}
+
 const ensureConversation = async () => {
   console.log('🔄 [ensureConversation] 开始初始化会话')
   const forceNew = route.query?.new === '1' || route.query?.new === 'true'
@@ -213,13 +258,31 @@ const ensureConversation = async () => {
     conversationId.value = Number(saved)
     console.log('📋 [ensureConversation] 使用已存在的会话ID:', conversationId.value)
     await loadHistory()
+    // 加载当前会话绑定的 KB 信息
+    try {
+      const { data } = await listConversations({ limit: 100, offset: 0 })
+      const arr = data?.data || []
+      const found = arr.find(it => Number(it.id) === Number(conversationId.value))
+      currentKbIds.value = found?.kb_ids || []
+    } catch (e) {
+      console.debug('[ensureConversation] load conv info failed:', e?.message)
+    }
     return
   }
 
-  console.log('🆕 [ensureConversation] 创建新会话...')
-  const { data } = await createConversation({ title: '新的对话' })
+  // 如有默认 KB，创建会话时自动绑定
+  const kbIds = settingsStore.default_kb_id ? [settingsStore.default_kb_id] : []
+  if (kbIds.length === 0) {
+    console.log('🧩 [ensureConversation] 未设置默认知识库，弹出配置')
+    await openKbConfig()
+    return
+  }
+
+  console.log('🆕 [ensureConversation] 创建新会话...', { kbIds })
+  const { data } = await createConversation({ kb_ids: kbIds })
   const conv = data?.data
   conversationId.value = conv?.id
+  currentKbIds.value = Array.isArray(conv?.kb_ids) ? conv.kb_ids : []
   console.log('✅ [ensureConversation] 新会话创建成功:', conversationId.value)
   if (conversationId.value) localStorage.setItem('kh_conversation_id', String(conversationId.value))
 }
@@ -246,14 +309,21 @@ const loadHistory = async () => {
 }
 
 onMounted(async () => {
-  await ensureConversation()
-  if (messages.value.length === 0) {
-    messages.value.push({
-      type: 'ai',
-      content: '欢迎使用 Knowledge-Horizon 智能知识库系统！请输入您的问题。',
-      time: formatTime(new Date())
-    })
+  // 先加载用户设置（用于默认 KB、流式/联网偏好）
+  if (!settingsLoaded.value) {
+    await settingsStore.load()
   }
+  // 预取 KB 列表用于名称映射
+  try {
+    const { data } = await listKBs({ limit: 100, offset: 0 })
+    const items = data?.data?.items || []
+    kbOptions.value = items.map(it => ({ label: it.name, value: it.id }))
+    const mp = {}
+    for (const it of items) mp[it.id] = it.name
+    kbNameMap.value = mp
+  } catch {}
+  await ensureConversation()
+  insertWelcomeIfEmpty()
 })
 
 // 监听路由参数变化：当收到 new=1 时强制新建一个会话
@@ -266,7 +336,11 @@ watch(
       conversationId.value = null
       messages.value = []
       isGenerating.value = false
+      if (!settingsLoaded.value) {
+        await settingsStore.load()
+      }
       await ensureConversation()
+      insertWelcomeIfEmpty()
       // 清理 URL，避免反复触发
       try { window.history.replaceState({}, '', '/app') } catch {}
     }
@@ -619,12 +693,14 @@ const onNewLine = () => { text.value += '\n' }
   z-index: 10;
 }
 
-.pills {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 0 16px;
-}
+  .pills {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 0 16px;
+  }
+  .kb-tags { display:flex; align-items:center; gap:6px; }
+  .kb-label { color:#666; font-size:12px; }
 
 /* 配置按钮样式 */
 .config-button {

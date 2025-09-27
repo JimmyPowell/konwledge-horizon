@@ -405,8 +405,8 @@ const onFileSelected = async (e) => {
     'text/markdown']
   const okType = !f.type || allowed.includes(f.type) || ['pdf','doc','docx','txt','md'].includes((f.name.split('.').pop()||'').toLowerCase())
   if (!okType) { message.error('不支持的文件类型'); e.target.value = ''; return }
-  const isLt50M = f.size / 1024 / 1024 < 50
-  if (!isLt50M) { message.error('文件大小不能超过 50MB'); e.target.value = ''; return }
+  const isLt100M = f.size / 1024 / 1024 < 100
+  if (!isLt100M) { message.error('文件大小不能超过 100MB'); e.target.value = ''; return }
   try {
     message.loading('上传中...', 1)
     await uploadKBDocument(Number(knowledgeBaseId.value), f, form.value)

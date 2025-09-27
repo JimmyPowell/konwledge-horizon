@@ -38,4 +38,3 @@ def parse_file(path: str, *, mime: Optional[str] = None, ext: Optional[str] = No
         return _load_text(path)
 
     raise ValueError(f"Unsupported file extension: .{ext}")
-

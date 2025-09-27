@@ -122,6 +122,13 @@ export const refreshToken = (refresh_token) =>
 export const logout = (refresh_token) =>
   bare.post('/api/v1/auth/logout', { refresh_token })
 
+// User Settings APIs
+export const getMySettings = () =>
+  api.get('/api/v1/settings/me')
+
+export const updateMySettings = (payload) =>
+  api.patch('/api/v1/settings/me', payload)
+
 // Chat APIs
 export const createConversation = (payload = {}) =>
   api.post('/api/v1/chat/conversations', payload)

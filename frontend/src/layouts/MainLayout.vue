@@ -1,5 +1,5 @@
 <template>
-  <a-layout style="min-height:100vh">
+  <a-layout class="app-shell">
     <!-- 顶部 Header，覆盖全宽 -->
     <a-layout-header class="header">
       <div class="header-left">
@@ -25,7 +25,7 @@
     </a-layout-header>
 
     <!-- 下方主体布局：左侧侧栏 + 右侧内容 -->
-    <a-layout>
+    <a-layout class="main-area">
       <a-layout-sider width="220" theme="light" :style="{ background: '#fff', borderRight: '1px solid #eee' }">
         <a-menu theme="light" mode="inline" v-model:selectedKeys="selectedKeys" @click="onMenu">
           <a-menu-item key="home">新建对话</a-menu-item>
@@ -34,7 +34,7 @@
           <a-menu-item key="workflow">工作流广场</a-menu-item>
         </a-menu>
       </a-layout-sider>
-      <a-layout>
+      <a-layout class="content-wrap">
         <a-layout-content class="content">
           <router-view />
         </a-layout-content>
@@ -49,6 +49,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { getIdentifier, getRefreshToken } from '../utils/tokens'
 import { logout as apiLogout } from '../services/api'
 import { useAuthStore } from '../stores/auth'
+import { useSettingsStore } from '../stores/settings'
 
 const router = useRouter()
 const route = useRoute()
@@ -56,6 +57,7 @@ const selectedKeys = ref(['home'])
 const identifier = ref('')
 const avatarUrl = ref('') // 未来可由 /me 接口返回
 const auth = useAuthStore()
+const settings = useSettingsStore()
 
 const initials = computed(() => {
   const id = identifier.value || ''
@@ -90,6 +92,7 @@ const onUserMenu = async ({ key }) => {
       }
     } finally {
       auth.logout()
+      settings.resetLocal()
       router.push('/auth')
     }
   }
@@ -97,6 +100,7 @@ const onUserMenu = async ({ key }) => {
 </script>
 
 <style scoped>
+.app-shell { height: 100vh; overflow: hidden; }
 .header { background: #fff; display:flex; align-items:center; justify-content:space-between; border-bottom: 1px solid #eee; padding: 0 16px; height: 68px; }
 .header-left { display:flex; align-items:center; gap: 16px; }
 .brand { font-weight: 700; font-size: 20px; }
@@ -106,7 +110,9 @@ const onUserMenu = async ({ key }) => {
 .avatar-wrapper { width: 40px; height: 40px; display:inline-flex; }
 .avatar { width: 40px; height: 40px; border-radius: 999px; border: 1px solid #e5e7eb; display:inline-flex; align-items:center; justify-content:center; background:#f3f4f6; font-weight: 600; color:#6b7280; cursor: pointer; }
 .avatar.placeholder { font-size: 14px; }
-.content { padding: 16px; }
+.main-area { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.content-wrap { display: flex; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.content { padding: 16px; height: 100%; overflow-y: auto; min-width: 0; overscroll-behavior: contain; }
 
 /* 菜单样式：浅色、条目分隔线、居中 */
 :deep(.ant-menu-inline) { border-inline-end: 0 !important; }

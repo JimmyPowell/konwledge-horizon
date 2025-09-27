@@ -18,7 +18,7 @@
           </div>
           <div class="upload-text">
             <p class="upload-hint">点击或拖拽文件到此区域上传</p>
-            <p class="upload-desc">支持 PDF、Word、TXT、Markdown 等格式，单个文件不超过 50MB</p>
+            <p class="upload-desc">支持 PDF、Word、TXT、Markdown 等格式，单个文件不超过 100MB</p>
           </div>
         </div>
       </a-upload-dragger>
@@ -166,10 +166,10 @@ const beforeUpload = (file) => {
     return false
   }
 
-  // 检查文件大小 (50MB)
-  const isLt50M = file.size / 1024 / 1024 < 50
-  if (!isLt50M) {
-    message.error('文件大小不能超过 50MB')
+  // 检查文件大小 (100MB)
+  const isLt100M = file.size / 1024 / 1024 < 100
+  if (!isLt100M) {
+    message.error('文件大小不能超过 100MB')
     return false
   }
 

@@ -152,3 +152,28 @@ CREATE TABLE IF NOT EXISTS kb_shared_users (
 -- Optional FK for conversation_kbs
 -- ALTER TABLE conversation_kbs
 --   ADD CONSTRAINT fk_convkbs_kb FOREIGN KEY (kb_id) REFERENCES knowledge_bases(id);
+
+-- User settings (authoritative persistent preferences)
+CREATE TABLE IF NOT EXISTS user_settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE,
+
+    streaming BOOLEAN NOT NULL DEFAULT TRUE,
+    web_search BOOLEAN NOT NULL DEFAULT FALSE,
+    default_kb_id INT NULL,
+    model VARCHAR(128) NULL,
+    temperature DECIMAL(3,2) NULL,
+    top_p DECIMAL(3,2) NULL,
+    max_tokens INT NULL,
+
+    tools JSON NULL,
+    extra JSON NULL,
+
+    version INT NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_user_settings_user (user_id),
+    INDEX idx_user_settings_updated (updated_at),
+    CONSTRAINT fk_user_settings_user FOREIGN KEY (user_id) REFERENCES users(id)
+);

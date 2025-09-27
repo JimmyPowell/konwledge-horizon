@@ -45,7 +45,7 @@ class Settings(BaseSettings):
 
     # File storage
     STORAGE_ROOT: str = "storage"
-    MAX_UPLOAD_BYTES: int = 50 * 1024 * 1024
+    MAX_UPLOAD_BYTES: int = 100 * 1024 * 1024
 
     # Chroma vector DB (independent server recommended)
     CHROMA_HOST: str = "localhost"
@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     CHROMA_PATH: str = "./chroma_data"  # used only for embedded mode
 
     # Embedding / indexing defaults
-    EMBEDDING_MODEL_DEFAULT: str = "BAAI/bge-m3"
+    EMBEDDING_MODEL_DEFAULT: str = "Qwen/Qwen3-Embedding-8B"
     CHUNK_SIZE_DEFAULT: int = 1000
     CHUNK_OVERLAP_DEFAULT: int = 200
     PARSE_STRATEGY_DEFAULT: str = "auto"
@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     RAG_TOP_K: int = 6
     RAG_PER_KB_K: int | None = None
     RERANK_ENABLED: bool = False
-    RERANK_MODEL: str = "BAAI/bge-reranker-v2-m3"
+    RERANK_MODEL: str = "Qwen/Qwen3-Reranker-8B"
     RERANK_TOP_N: int = 6
     MAX_CONTEXT_CHARS: int = 8000
 
@@ -71,6 +71,8 @@ class Settings(BaseSettings):
     LLM_TITLE_MODEL: Optional[str] = None  # fallback to LLM_DEFAULT_MODEL if None
     TITLE_MAX_TOKENS: int = 32
     TITLE_MAX_LENGTH_CHARS: int = 40
+
+    # PDF parsing / OCR fallback (disabled/removed by default)
 
     @property
     def mysql_database_url(self) -> str:

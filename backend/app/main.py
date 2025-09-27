@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.endpoints import auth
 from app.api.endpoints import chat
 from app.api.endpoints import kb
+from app.api.endpoints import settings as user_settings
 
 def _setup_logging() -> None:
     """Route app logs through uvicorn logger and set INFO level for our modules."""
@@ -31,6 +32,7 @@ api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(chat.router, prefix="/chat", tags=["Chat"])
 api_router.include_router(kb.router, prefix="/kb", tags=["Knowledge Base"])
+api_router.include_router(user_settings.router, prefix="/settings", tags=["Settings"])
 
 app.include_router(api_router)
 

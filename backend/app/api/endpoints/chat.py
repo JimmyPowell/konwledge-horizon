@@ -168,13 +168,15 @@ def send_message(
     except Exception:
         pass
 
-    # Auto-generate title in background (only if missing)
+    # Auto-generate title in background
+    # Force generation only if conversation title is empty (None or empty string)
     try:
+        force_title = not (conv.title and str(conv.title).strip())
         background_tasks.add_task(
             title_service.generate_and_save_if_needed_background,
             conversation_id=conversation_id,
             user_id=current_user.id,
-            force=False,
+            force=force_title,
         )
     except Exception:
         logger.debug("[api.chat] schedule_title_task_failed conv=%s", conversation_id)
@@ -213,12 +215,14 @@ def send_message_stream(
     resp.headers["X-Accel-Buffering"] = "no"
 
     # Schedule title generation to run after stream finishes
+    # Force generation only if conversation title is empty
     try:
+        force_title = not (conv.title and str(conv.title).strip())
         background_tasks.add_task(
             title_service.generate_and_save_if_needed_background,
             conversation_id=conversation_id,
             user_id=current_user.id,
-            force=False,
+            force=force_title,
         )
     except Exception:
         logger.debug("[api.chat] schedule_title_task_failed conv=%s", conversation_id)

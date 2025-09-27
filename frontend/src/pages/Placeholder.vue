@@ -40,14 +40,7 @@
               </span>
             </div>
           </div>
-          <div class="card-footer">
-            <div class="progress-info">
-              <div class="progress-bar">
-                <div class="progress-fill" :style="{ width: workflow.progress + '%' }"></div>
-              </div>
-              <span class="progress-text">开发进度 {{ workflow.progress }}%</span>
-            </div>
-          </div>
+          <!-- 去除开发进度显示，保留功能提示 -->
         </div>
       </div>
     </div>
@@ -124,8 +117,8 @@ const comingSoonWorkflows = ref([
   {
     id: 1,
     name: '智能数据分析',
-    description: '自动化数据处理和可视化分析，支持多种数据源导入',
-    features: ['数据清洗', '图表生成', '趋势分析'],
+    description: '面向自动化的数据管道与持续建模（MLOps），支持定时/事件驱动的ETL、特征计算与模型滚动更新',
+    features: ['自动化管道', '持续建模', '模型监控'],
     progress: 75,
     icon: () => h('svg', {
       width: '32',
@@ -141,9 +134,9 @@ const comingSoonWorkflows = ref([
   },
   {
     id: 2,
-    name: '文档智能处理',
-    description: '批量处理文档格式转换、内容提取和智能摘要生成',
-    features: ['格式转换', '内容提取', '智能摘要'],
+    name: '深化文档解析',
+    description: '面向复杂文档的版面理解、结构化抽取与语义切分，支持批量处理与格式转换',
+    features: ['版面分析', '结构化抽取', '语义切分'],
     progress: 60,
     icon: () => h('svg', {
       width: '32',
@@ -172,24 +165,6 @@ const comingSoonWorkflows = ref([
       h('path', {
         d: 'M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z',
         fill: '#e17055'
-      })
-    ])
-  },
-  {
-    id: 4,
-    name: '智能客服助手',
-    description: '基于知识库的智能问答系统，支持多轮对话和情感分析',
-    features: ['智能问答', '多轮对话', '情感分析'],
-    progress: 30,
-    icon: () => h('svg', {
-      width: '32',
-      height: '32',
-      viewBox: '0 0 24 24',
-      fill: 'none'
-    }, [
-      h('path', {
-        d: 'M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22H17V20H12C7.66,20 4,16.34 4,12C4,7.66 7.66,4 12,4C16.34,4 20,7.66 20,12V13.5C20,14.33 19.33,15 18.5,15C17.67,15 17,14.33 17,13.5V12C17,9.24 14.76,7 12,7C9.24,7 7,9.24 7,12C7,14.76 9.24,17 12,17C13.38,17 14.64,16.44 15.54,15.53C16.19,16.42 17.31,17 18.5,17C20.43,17 22,15.43 22,13.5V12C22,6.48 17.52,2 12,2M12,15C10.34,15 9,13.66 9,12C9,10.34 10.34,9 12,9C13.66,9 15,10.34 15,12C15,13.66 13.66,15 12,15Z',
-        fill: '#6c5ce7'
       })
     ])
   }
@@ -524,4 +499,3 @@ const contactSupport = () => {
   }
 }
 </style>
-
